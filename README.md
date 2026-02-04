@@ -3,7 +3,11 @@
 A colorful, lightweight todo app built with React + TypeScript. Create tasks, edit quickly, filter by status, and keep everything in localStorage.
 
 ## Preview
-Add a screenshot or short GIF here.
+!["main screen"](public/main.png)
+!["active screen"](public/active.png)
+!["done screen"](public/done.png)
+
+
 
 ## Features
 - Add, toggle, edit, and delete todos
