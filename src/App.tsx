@@ -1,4 +1,4 @@
-import { useReducer } from "react";
+import { useEffect, useReducer } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
 import { TodoInput } from "./components/TodoInput";
@@ -7,9 +7,21 @@ import { Filters } from "./components/Filters";
 import { EmptyState } from "./components/EmptyState";
 import { defaultState, reducer } from "./state/todosReducer";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
+import { useLocalStorageState } from "./hooks/useLocalStorageState";
+
+const STORAGE_KEY = "todos_app_v1";
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, defaultState);
+  const [persistedState, setPersistedState] = useLocalStorageState(
+    STORAGE_KEY,
+    defaultState
+  );
+  const [state, dispatch] = useReducer(reducer, persistedState);
+
+  useEffect(() => {
+    setPersistedState(state);
+  }, [state, setPersistedState]);
+
   const visibleTodos = selectVisibleTodos(state);
   const counts = selectCounts(state);
 
