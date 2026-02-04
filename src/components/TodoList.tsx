@@ -5,9 +5,10 @@ type TodoListProps = {
   todos: Todo[];
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
+  onEdit: (id: string, title: string) => void;
 };
 
-export function TodoList({ todos, onToggle, onRemove }: TodoListProps) {
+export function TodoList({ todos, onToggle, onRemove, onEdit }: TodoListProps) {
   return (
     <ul className="todo-list">
       {todos.map((todo) => (
@@ -16,6 +17,7 @@ export function TodoList({ todos, onToggle, onRemove }: TodoListProps) {
           todo={todo}
           onToggle={onToggle}
           onRemove={onRemove}
+          onEdit={onEdit}
         />
       ))}
     </ul>

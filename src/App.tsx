@@ -3,12 +3,15 @@ import "./App.css";
 import { Header } from "./components/Header";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
+import { Filters } from "./components/Filters";
+import { EmptyState } from "./components/EmptyState";
 import { defaultState, reducer } from "./state/todosReducer";
-import { selectVisibleTodos } from "./state/selectors";
+import { selectCounts, selectVisibleTodos } from "./state/selectors";
 
 function App() {
   const [state, dispatch] = useReducer(reducer, defaultState);
   const visibleTodos = selectVisibleTodos(state);
+  const counts = selectCounts(state);
 
   return (
     <div className="app">
@@ -16,11 +19,21 @@ function App() {
       <main className="app__main">
         <section className="card">
           <TodoInput onAdd={(title) => dispatch({ type: "add", title })} />
-          <TodoList
-            todos={visibleTodos}
-            onToggle={(id) => dispatch({ type: "toggle", id })}
-            onRemove={(id) => dispatch({ type: "remove", id })}
+          <Filters
+            filter={state.filter}
+            counts={counts}
+            onChange={(filter) => dispatch({ type: "setFilter", filter })}
           />
+          {visibleTodos.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <TodoList
+              todos={visibleTodos}
+              onToggle={(id) => dispatch({ type: "toggle", id })}
+              onRemove={(id) => dispatch({ type: "remove", id })}
+              onEdit={(id, title) => dispatch({ type: "edit", id, title })}
+            />
+          )}
         </section>
       </main>
     </div>
