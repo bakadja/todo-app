@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Todo } from "../state/todosReducer";
+import type { Todo } from "../state/todosReducer";
 
 type TodoItemProps = {
   todo: Todo;

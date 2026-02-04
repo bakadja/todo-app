@@ -1,4 +1,4 @@
-import { Todo } from "../state/todosReducer";
+import type { Todo } from "../state/todosReducer";
 import { TodoItem } from "./TodoItem";
 
 type TodoListProps = {

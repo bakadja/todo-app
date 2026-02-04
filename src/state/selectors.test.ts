@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { selectVisibleTodos, selectCounts } from "./selectors";
-import { State } from "./todosReducer";
+import type { State } from "./todosReducer";
 
 const state: State = {
   filter: "active",

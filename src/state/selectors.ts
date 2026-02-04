@@ -1,4 +1,4 @@
-import { State } from "./todosReducer";
+import type { State } from "./todosReducer";
 
 export function selectVisibleTodos(state: State) {
   switch (state.filter) {

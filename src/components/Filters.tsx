@@ -1,4 +1,4 @@
-import { Filter } from "../state/todosReducer";
+import type { Filter } from "../state/todosReducer";
 
 type FiltersProps = {
   filter: Filter;
