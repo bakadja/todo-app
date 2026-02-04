@@ -7,20 +7,20 @@ import { Filters } from "./components/Filters";
 import { EmptyState } from "./components/EmptyState";
 import { defaultState, reducer } from "./state/todosReducer";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
-import { useLocalStorageState } from "./hooks/useLocalStorageState";
+import { loadState, saveState } from "./storage/localStorage";
 
 const STORAGE_KEY = "todos_app_v1";
 
 function App() {
-  const [persistedState, setPersistedState] = useLocalStorageState(
-    STORAGE_KEY,
-    defaultState
+  const [state, dispatch] = useReducer(
+    reducer,
+    defaultState,
+    (initialState) => loadState(STORAGE_KEY, initialState)
   );
-  const [state, dispatch] = useReducer(reducer, persistedState);
 
   useEffect(() => {
-    setPersistedState(state);
-  }, [state, setPersistedState]);
+    saveState(STORAGE_KEY, state);
+  }, [state]);
 
   const visibleTodos = selectVisibleTodos(state);
   const counts = selectCounts(state);
