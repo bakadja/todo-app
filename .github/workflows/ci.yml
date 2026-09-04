@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - feat/offline-first-sync
+      - master
   pull_request:
     branches:
       - master
