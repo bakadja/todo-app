@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: feat/offline-first-sync
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -41,4 +42,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package-lock.json
           git commit -m "chore: update package lock"
+          git pull --rebase origin feat/offline-first-sync
           git push origin HEAD:feat/offline-first-sync
