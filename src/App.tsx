@@ -1,17 +1,47 @@
 import "./App.css";
+import { useAuth } from "./auth/AuthContext";
 import { AuthPanel } from "./components/AuthPanel";
 import { EmptyState } from "./components/EmptyState";
 import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
+import { SyncStatus } from "./components/SyncStatus";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
 import { useTodoAppState } from "./hooks/useTodoAppState";
+import { useTodoSync } from "./hooks/useTodoSync";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
+import { ownerKeyForUser } from "./storage/todoDb";
 
 function App() {
-  const local = useTodoAppState("anonymous");
+  const { user, localUserId } = useAuth();
+  const effectiveUserId = user?.id ?? localUserId;
+  const ownerKey = effectiveUserId
+    ? ownerKeyForUser(effectiveUserId)
+    : "anonymous";
+  const local = useTodoAppState(ownerKey);
+  const sync = useTodoSync(user?.id ?? null, local.refresh);
   const visibleTodos = selectVisibleTodos(local.state);
   const counts = selectCounts(local.state);
+
+  const handleAdd = async (title: string) => {
+    await local.add(title);
+    void sync.requestSync();
+  };
+
+  const handleToggle = async (id: string) => {
+    await local.toggle(id);
+    void sync.requestSync();
+  };
+
+  const handleRemove = async (id: string) => {
+    await local.remove(id);
+    void sync.requestSync();
+  };
+
+  const handleEdit = async (id: string, title: string) => {
+    await local.edit(id, title);
+    void sync.requestSync();
+  };
 
   return (
     <div className="app">
@@ -19,7 +49,8 @@ function App() {
       <main className="app__main">
         <section className="card">
           <AuthPanel />
-          <TodoInput onAdd={(title) => void local.add(title)} />
+          <SyncStatus status={sync.status} />
+          <TodoInput onAdd={(title) => void handleAdd(title)} />
           <Filters
             filter={local.state.filter}
             counts={counts}
@@ -30,9 +61,9 @@ function App() {
           ) : (
             <TodoList
               todos={visibleTodos}
-              onToggle={(id) => void local.toggle(id)}
-              onRemove={(id) => void local.remove(id)}
-              onEdit={(id, title) => void local.edit(id, title)}
+              onToggle={(id) => void handleToggle(id)}
+              onRemove={(id) => void handleRemove(id)}
+              onEdit={(id, title) => void handleEdit(id, title)}
             />
           )}
         </section>
