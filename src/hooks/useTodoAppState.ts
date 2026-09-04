@@ -46,6 +46,9 @@ export function useTodoAppState(
 
     const hydrate = async () => {
       await migrateLegacyState(db);
+      if (ownerKey !== "anonymous") {
+        await repository.claimAnonymous(ownerKey);
+      }
       const filter = loadFilterPreference();
       const rows = await repository.listVisible(ownerKey);
 
