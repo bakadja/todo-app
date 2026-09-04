@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Todo } from "../state/todosReducer";
 
 type TodoItemProps = {
@@ -12,9 +12,10 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(todo.title);
 
-  useEffect(() => {
+  const startEdit = () => {
     setDraft(todo.title);
-  }, [todo.title]);
+    setIsEditing(true);
+  };
 
   const commit = () => {
     const next = draft.trim();
@@ -63,15 +64,12 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
               checked={todo.completed}
               onChange={() => onToggle(todo.id)}
             />
-            <span
-              className="todo-item__title"
-              onDoubleClick={() => setIsEditing(true)}
-            >
+            <span className="todo-item__title" onDoubleClick={startEdit}>
               {todo.title}
             </span>
           </label>
           <div className="todo-item__actions">
-            <button type="button" onClick={() => setIsEditing(true)}>
+            <button type="button" onClick={startEdit}>
               Edit
             </button>
             <button
