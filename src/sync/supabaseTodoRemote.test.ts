@@ -30,8 +30,9 @@ const localRow: LocalTodoRecord = {
 };
 
 describe("SupabaseTodoRemote", () => {
-  it("pushes through the LWW RPC without sending user_id", async () => {
-    const rpc = vi.fn().mockResolvedValue({ data: remoteRow, error: null });
+  it("pushes through the LWW RPC and requests one canonical row without sending user_id", async () => {
+    const single = vi.fn().mockResolvedValue({ data: remoteRow, error: null });
+    const rpc = vi.fn().mockReturnValue({ single });
     const client = { rpc } as unknown as SupabaseClient;
     const remote = new SupabaseTodoRemote(client);
 
@@ -44,6 +45,7 @@ describe("SupabaseTodoRemote", () => {
       p_updated_at: new Date(localRow.updatedAt).toISOString(),
       p_deleted_at: null,
     });
+    expect(single).toHaveBeenCalledTimes(1);
   });
 
   it("lists canonical rows ordered by updated_at ascending", async () => {
