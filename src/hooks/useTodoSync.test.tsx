@@ -139,4 +139,31 @@ describe("useTodoSync", () => {
     await waitFor(() => expect(runner).toHaveBeenCalledTimes(2));
     expect(runner).toHaveBeenCalledTimes(2);
   });
+
+  it("does not refresh a signed-out owner's local state when an older sync finishes", async () => {
+    const first = deferred<{ pushed: number; pulled: number; errors: number }>();
+    const runner = vi.fn<TodoSyncRunner>().mockImplementation(() => first.promise);
+    const signedInRefresh = vi.fn().mockResolvedValue(undefined);
+    const signedOutRefresh = vi.fn().mockResolvedValue(undefined);
+
+    const { rerender } = renderHook(
+      ({ userId, refresh }: { userId: string | null; refresh: () => Promise<void> }) =>
+        useTodoSync(userId, refresh, runner),
+      {
+        initialProps: { userId: USER_ID, refresh: signedInRefresh },
+      },
+    );
+
+    await waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
+
+    rerender({ userId: null, refresh: signedOutRefresh });
+
+    await act(async () => {
+      first.resolve({ pushed: 1, pulled: 0, errors: 0 });
+      await first.promise;
+    });
+
+    expect(signedInRefresh).not.toHaveBeenCalled();
+    expect(signedOutRefresh).not.toHaveBeenCalled();
+  });
 });
