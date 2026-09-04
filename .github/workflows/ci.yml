@@ -42,3 +42,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Verify offline app shell artifacts
+        run: |
+          test -f dist/sw.js
+          test -f dist/manifest.webmanifest
