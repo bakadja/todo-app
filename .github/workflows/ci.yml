@@ -18,7 +18,7 @@ concurrency:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -36,8 +36,7 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Run lint (advisory baseline)
-        continue-on-error: true
+      - name: Run lint
         run: npm run lint
 
       - name: Build
@@ -47,3 +46,16 @@ jobs:
         run: |
           test -f dist/sw.js
           test -f dist/manifest.webmanifest
+
+      - name: Start local Supabase
+        run: npx supabase start
+
+      - name: Reset local database
+        run: npx supabase db reset --local
+
+      - name: Run database tests
+        run: npx supabase test db
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup
