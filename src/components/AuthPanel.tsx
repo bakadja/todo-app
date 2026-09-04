@@ -9,14 +9,30 @@ export function AuthPanel() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) {
-    return <div className="auth-panel">Checking account…</div>;
+    return (
+      <div className="auth-panel auth-panel--loading" role="status">
+        Checking account…
+      </div>
+    );
   }
 
   if (user) {
     return (
-      <div className="auth-panel">
-        <span>{user.email ?? "Signed in"}</span>
-        <button type="button" onClick={() => void signOut()}>
+      <div className="auth-panel auth-panel--signed-in">
+        <div className="auth-panel__identity">
+          <span className="auth-panel__eyebrow">Account</span>
+          <strong className="auth-panel__email">
+            {user.email ?? "Signed in"}
+          </strong>
+          <span className="auth-panel__helper">
+            Your todos are connected to this account.
+          </span>
+        </div>
+        <button
+          type="button"
+          className="auth-panel__button auth-panel__button--signout"
+          onClick={() => void signOut()}
+        >
           Sign out
         </button>
       </div>
@@ -42,34 +58,65 @@ export function AuthPanel() {
   };
 
   return (
-    <form className="auth-panel" onSubmit={handleSubmit}>
-      <input
-        type="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="Email"
-        autoComplete="email"
-        required
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        placeholder="Password"
-        autoComplete="current-password"
-        required
-      />
-      <button type="submit" disabled={submitting}>
-        Sign in
-      </button>
-      <button
-        type="button"
-        disabled={submitting}
-        onClick={() => void run("signUp")}
-      >
-        Create account
-      </button>
-      {error && <p role="alert">{error}</p>}
+    <form
+      className="auth-panel auth-panel--signed-out"
+      onSubmit={handleSubmit}
+    >
+      <div className="auth-panel__intro">
+        <span className="auth-panel__eyebrow">Cloud sync</span>
+        <h2>Sync your todos everywhere</h2>
+        <p>Sign in to keep your tasks in sync across your devices.</p>
+      </div>
+
+      <div className="auth-panel__form-row">
+        <label className="auth-panel__field">
+          <span>Email</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            required
+          />
+        </label>
+
+        <label className="auth-panel__field">
+          <span>Password</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Your password"
+            autoComplete="current-password"
+            required
+          />
+        </label>
+
+        <div className="auth-panel__actions">
+          <button
+            type="submit"
+            className="auth-panel__button auth-panel__button--primary"
+            disabled={submitting}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className="auth-panel__button auth-panel__button--secondary"
+            disabled={submitting}
+            onClick={() => void run("signUp")}
+          >
+            Create account
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <p className="auth-panel__error" role="alert">
+          {error}
+        </p>
+      )}
     </form>
   );
 }
