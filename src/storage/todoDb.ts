@@ -35,4 +35,6 @@ export class TodoDb extends Dexie {
 
 export const createTodoDb = (name = "todo-pop") => new TodoDb(name);
 export const todoDb = createTodoDb();
-export const ownerKeyForUser = (userId: string): OwnerKey => `user:${userId}`;
+export const ownerKeyForUser = (
+  userId: string,
+): Exclude<OwnerKey, "anonymous"> => `user:${userId}`;
