@@ -1,4 +1,5 @@
 import "./App.css";
+import { AuthPanel } from "./components/AuthPanel";
 import { EmptyState } from "./components/EmptyState";
 import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
@@ -17,6 +18,7 @@ function App() {
       <Header />
       <main className="app__main">
         <section className="card">
+          <AuthPanel />
           <TodoInput onAdd={(title) => void local.add(title)} />
           <Filters
             filter={local.state.filter}
