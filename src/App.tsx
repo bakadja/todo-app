@@ -1,49 +1,69 @@
-import { useEffect, useReducer } from "react";
 import "./App.css";
+import { useAuth } from "./auth/AuthContext";
+import { AuthPanel } from "./components/AuthPanel";
+import { EmptyState } from "./components/EmptyState";
+import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
+import { SyncStatus } from "./components/SyncStatus";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
-import { Filters } from "./components/Filters";
-import { EmptyState } from "./components/EmptyState";
-import { defaultState, reducer } from "./state/todosReducer";
+import { useTodoAppState } from "./hooks/useTodoAppState";
+import { useTodoSync } from "./hooks/useTodoSync";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
-import { loadState, saveState } from "./storage/localStorage";
-
-const STORAGE_KEY = "todos_app_v1";
+import { ownerKeyForUser } from "./storage/todoDb";
 
 function App() {
-  const [state, dispatch] = useReducer(
-    reducer,
-    defaultState,
-    (initialState) => loadState(STORAGE_KEY, initialState)
-  );
+  const { user, localUserId } = useAuth();
+  const effectiveUserId = user?.id ?? localUserId;
+  const ownerKey = effectiveUserId
+    ? ownerKeyForUser(effectiveUserId)
+    : "anonymous";
+  const local = useTodoAppState(ownerKey);
+  const sync = useTodoSync(user?.id ?? null, local.refresh);
+  const visibleTodos = selectVisibleTodos(local.state);
+  const counts = selectCounts(local.state);
 
-  useEffect(() => {
-    saveState(STORAGE_KEY, state);
-  }, [state]);
+  const handleAdd = async (title: string) => {
+    await local.add(title);
+    void sync.requestSync();
+  };
 
-  const visibleTodos = selectVisibleTodos(state);
-  const counts = selectCounts(state);
+  const handleToggle = async (id: string) => {
+    await local.toggle(id);
+    void sync.requestSync();
+  };
+
+  const handleRemove = async (id: string) => {
+    await local.remove(id);
+    void sync.requestSync();
+  };
+
+  const handleEdit = async (id: string, title: string) => {
+    await local.edit(id, title);
+    void sync.requestSync();
+  };
 
   return (
     <div className="app">
       <Header />
       <main className="app__main">
         <section className="card">
-          <TodoInput onAdd={(title) => dispatch({ type: "add", title })} />
+          <AuthPanel />
+          <SyncStatus status={sync.status} />
+          <TodoInput onAdd={(title) => void handleAdd(title)} />
           <Filters
-            filter={state.filter}
+            filter={local.state.filter}
             counts={counts}
-            onChange={(filter) => dispatch({ type: "setFilter", filter })}
+            onChange={local.setFilter}
           />
           {visibleTodos.length === 0 ? (
             <EmptyState />
           ) : (
             <TodoList
               todos={visibleTodos}
-              onToggle={(id) => dispatch({ type: "toggle", id })}
-              onRemove={(id) => dispatch({ type: "remove", id })}
-              onEdit={(id, title) => dispatch({ type: "edit", id, title })}
+              onToggle={(id) => void handleToggle(id)}
+              onRemove={(id) => void handleRemove(id)}
+              onEdit={(id, title) => void handleEdit(id, title)}
             />
           )}
         </section>

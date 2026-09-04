@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify offline app shell artifacts
+        run: |
+          test -f dist/sw.js
+          test -f dist/manifest.webmanifest
+
+      - name: Verify no Supabase server secrets are referenced in source
+        shell: bash
+        run: |
+          pattern='sb_''secret_|service_''role|SUPABASE_SERVICE_''ROLE'
+          if git grep -nE "$pattern" -- ':!docs/**' ':!.github/workflows/ci.yml'; then
+            echo "Forbidden Supabase server-secret marker found outside docs"
+            exit 1
+          fi
+
+      - name: Start local Supabase
+        run: npx supabase start
+
+      - name: Reset local database
+        run: npx supabase db reset --local
+
+      - name: Run database tests
+        run: npx supabase test db
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup

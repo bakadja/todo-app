@@ -1,58 +1,45 @@
 export type Filter = "all" | "active" | "completed";
+
 export type Todo = {
   id: string;
   title: string;
   completed: boolean;
   createdAt: number;
 };
-export type State = { todos: Todo[]; filter: Filter };
+
+export type State = {
+  todos: Todo[];
+  filter: Filter;
+};
 
 export type Action =
-  | { type: "add"; title: string }
-  | { type: "toggle"; id: string }
-  | { type: "edit"; id: string; title: string }
+  | { type: "hydrate"; todos: Todo[] }
+  | { type: "upsert"; todo: Todo }
   | { type: "remove"; id: string }
   | { type: "setFilter"; filter: Filter };
 
 export const defaultState: State = { todos: [], filter: "all" };
 
-const makeId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "add": {
-      const title = action.title.trim();
-      if (!title) return state;
-      const next = {
-        id: makeId(),
-        title,
-        completed: false,
-        createdAt: Date.now(),
-      };
-      return { ...state, todos: [next, ...state.todos] };
-    }
-    case "toggle":
+    case "hydrate":
+      return { ...state, todos: action.todos };
+    case "upsert": {
+      const exists = state.todos.some((todo) => todo.id === action.todo.id);
       return {
         ...state,
-        todos: state.todos.map((t) =>
-          t.id === action.id ? { ...t, completed: !t.completed } : t
-        ),
-      };
-    case "edit": {
-      const title = action.title.trim();
-      if (!title) return state;
-      return {
-        ...state,
-        todos: state.todos.map((t) =>
-          t.id === action.id ? { ...t, title } : t
-        ),
+        todos: exists
+          ? state.todos.map((todo) =>
+              todo.id === action.todo.id ? action.todo : todo,
+            )
+          : [action.todo, ...state.todos],
       };
     }
     case "remove":
-      return { ...state, todos: state.todos.filter((t) => t.id !== action.id) };
+      return {
+        ...state,
+        todos: state.todos.filter((todo) => todo.id !== action.id),
+      };
     case "setFilter":
       return { ...state, filter: action.filter };
     default:
