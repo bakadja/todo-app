@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { getBrowserSupabaseClient } from "../lib/supabase";
 import { localTodoRepository } from "../storage/todoRepository";
 import { SupabaseTodoRemote } from "../sync/supabaseTodoRemote";
@@ -28,10 +34,18 @@ export function useTodoSync(
     navigator.onLine ? "idle" : "offline",
   );
   const [lastError, setLastError] = useState<string | null>(null);
-  const inFlightRef = useRef(false);
-  const rerunRequestedRef = useRef(false);
+  const generationRef = useRef(0);
+  const inFlightGenerationRef = useRef<number | null>(null);
+  const rerunRequestedGenerationRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    generationRef.current += 1;
+    rerunRequestedGenerationRef.current = null;
+  }, [userId]);
 
   const requestSync = useCallback(async () => {
+    const generation = generationRef.current;
+
     if (!navigator.onLine) {
       setStatus("offline");
       return;
@@ -42,16 +56,19 @@ export function useTodoSync(
       return;
     }
 
-    if (inFlightRef.current) {
-      rerunRequestedRef.current = true;
+    if (inFlightGenerationRef.current === generation) {
+      rerunRequestedGenerationRef.current = generation;
       return;
     }
 
-    inFlightRef.current = true;
+    inFlightGenerationRef.current = generation;
 
     try {
       do {
-        rerunRequestedRef.current = false;
+        if (generationRef.current !== generation) return;
+        if (rerunRequestedGenerationRef.current === generation) {
+          rerunRequestedGenerationRef.current = null;
+        }
 
         if (!navigator.onLine) {
           setStatus("offline");
@@ -63,7 +80,10 @@ export function useTodoSync(
 
         try {
           const result = await runner(userId);
+          if (generationRef.current !== generation) return;
+
           await refresh();
+          if (generationRef.current !== generation) return;
 
           if (result.errors > 0) {
             setLastError("One or more sync operations failed");
@@ -72,14 +92,20 @@ export function useTodoSync(
             setStatus("idle");
           }
         } catch (error) {
+          if (generationRef.current !== generation) return;
           setLastError(
             error instanceof Error ? error.message : "Unknown sync error",
           );
           setStatus("error");
         }
-      } while (rerunRequestedRef.current);
+      } while (rerunRequestedGenerationRef.current === generation);
     } finally {
-      inFlightRef.current = false;
+      if (inFlightGenerationRef.current === generation) {
+        inFlightGenerationRef.current = null;
+      }
+      if (rerunRequestedGenerationRef.current === generation) {
+        rerunRequestedGenerationRef.current = null;
+      }
     }
   }, [refresh, runner, userId]);
 
