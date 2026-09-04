@@ -123,10 +123,11 @@ export function AuthProvider({
       const { data, error } = await client.auth.signUp({ email, password });
       if (error) return error.message;
 
-      if (data.user) {
-        await setActiveUserId(data.user.id, db);
-        setUser(data.user);
-        setLocalUserId(data.user.id);
+      const signedInUser = data.session?.user ?? null;
+      if (signedInUser) {
+        await setActiveUserId(signedInUser.id, db);
+        setUser(signedInUser);
+        setLocalUserId(signedInUser.id);
       }
 
       return null;
