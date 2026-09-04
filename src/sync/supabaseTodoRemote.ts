@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LocalTodoRecord, OwnerKey } from "../storage/todoDb";
 import type { RemoteTodoRecord, TodoRemote } from "./types";
 
+export type { RemoteTodoRecord } from "./types";
+
 const TODO_COLUMNS =
   "id,user_id,title,completed,created_at,updated_at,deleted_at";
 
