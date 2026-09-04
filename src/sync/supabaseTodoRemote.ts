@@ -32,15 +32,17 @@ export class SupabaseTodoRemote implements TodoRemote {
   }
 
   async push(todo: LocalTodoRecord): Promise<RemoteTodoRecord> {
-    const { data, error } = await this.client.rpc("sync_todo_lww", {
-      p_id: todo.id,
-      p_title: todo.title,
-      p_completed: todo.completed,
-      p_created_at: new Date(todo.createdAt).toISOString(),
-      p_updated_at: new Date(todo.updatedAt).toISOString(),
-      p_deleted_at:
-        todo.deletedAt === null ? null : new Date(todo.deletedAt).toISOString(),
-    });
+    const { data, error } = await this.client
+      .rpc("sync_todo_lww", {
+        p_id: todo.id,
+        p_title: todo.title,
+        p_completed: todo.completed,
+        p_created_at: new Date(todo.createdAt).toISOString(),
+        p_updated_at: new Date(todo.updatedAt).toISOString(),
+        p_deleted_at:
+          todo.deletedAt === null ? null : new Date(todo.deletedAt).toISOString(),
+      })
+      .single();
 
     if (error) throw new Error(error.message);
     if (!data) throw new Error("Supabase sync returned no canonical todo");
