@@ -47,6 +47,14 @@ jobs:
           test -f dist/sw.js
           test -f dist/manifest.webmanifest
 
+      - name: Verify no Supabase server secrets are referenced in source
+        shell: bash
+        run: |
+          if git grep -nE 'sb_secret_|service_role|SUPABASE_SERVICE_ROLE' -- ':!docs/**'; then
+            echo "Forbidden Supabase server-secret marker found outside docs"
+            exit 1
+          fi
+
       - name: Start local Supabase
         run: npx supabase start
 
