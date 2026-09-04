@@ -147,9 +147,9 @@ describe("useTodoAppState", () => {
     expect(second.result.current.state.filter).toBe("completed");
   });
 
-  it("refreshes visible todos when the owner changes", async () => {
+  it("claims anonymous todos when the owner changes to an authenticated user", async () => {
     const userOwner = ownerKeyForUser("11111111-1111-1111-1111-111111111111");
-    await repository.add("Anonymous task", "anonymous", 1000);
+    const anonymous = await repository.add("Anonymous task", "anonymous", 1000);
     await repository.add("User task", userOwner, 2000);
 
     const { result, rerender } = renderHook(
@@ -167,7 +167,12 @@ describe("useTodoAppState", () => {
     await waitFor(() =>
       expect(result.current.state.todos.map((todo) => todo.title)).toEqual([
         "User task",
+        "Anonymous task",
       ]),
     );
+    expect(await repository.get(anonymous.id)).toMatchObject({
+      ownerKey: userOwner,
+      syncStatus: "pending",
+    });
   });
 });
