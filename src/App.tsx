@@ -1,49 +1,36 @@
-import { useEffect, useReducer } from "react";
 import "./App.css";
+import { EmptyState } from "./components/EmptyState";
+import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
-import { Filters } from "./components/Filters";
-import { EmptyState } from "./components/EmptyState";
-import { defaultState, reducer } from "./state/todosReducer";
+import { useTodoAppState } from "./hooks/useTodoAppState";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
-import { loadState, saveState } from "./storage/localStorage";
-
-const STORAGE_KEY = "todos_app_v1";
 
 function App() {
-  const [state, dispatch] = useReducer(
-    reducer,
-    defaultState,
-    (initialState) => loadState(STORAGE_KEY, initialState)
-  );
-
-  useEffect(() => {
-    saveState(STORAGE_KEY, state);
-  }, [state]);
-
-  const visibleTodos = selectVisibleTodos(state);
-  const counts = selectCounts(state);
+  const local = useTodoAppState("anonymous");
+  const visibleTodos = selectVisibleTodos(local.state);
+  const counts = selectCounts(local.state);
 
   return (
     <div className="app">
       <Header />
       <main className="app__main">
         <section className="card">
-          <TodoInput onAdd={(title) => dispatch({ type: "add", title })} />
+          <TodoInput onAdd={(title) => void local.add(title)} />
           <Filters
-            filter={state.filter}
+            filter={local.state.filter}
             counts={counts}
-            onChange={(filter) => dispatch({ type: "setFilter", filter })}
+            onChange={local.setFilter}
           />
           {visibleTodos.length === 0 ? (
             <EmptyState />
           ) : (
             <TodoList
               todos={visibleTodos}
-              onToggle={(id) => dispatch({ type: "toggle", id })}
-              onRemove={(id) => dispatch({ type: "remove", id })}
-              onEdit={(id, title) => dispatch({ type: "edit", id, title })}
+              onToggle={(id) => void local.toggle(id)}
+              onRemove={(id) => void local.remove(id)}
+              onEdit={(id, title) => void local.edit(id, title)}
             />
           )}
         </section>
