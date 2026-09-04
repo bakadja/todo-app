@@ -11,7 +11,11 @@ const isRetryable = (row: LocalTodoRecord) =>
   row.syncStatus === "error";
 
 export class LocalTodoRepository {
-  constructor(private readonly db: TodoDb) {}
+  private readonly db: TodoDb;
+
+  constructor(db: TodoDb) {
+    this.db = db;
+  }
 
   get(id: string): Promise<LocalTodoRecord | undefined> {
     return this.db.todos.get(id);
