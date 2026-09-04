@@ -48,7 +48,7 @@ describe("useTodoSync", () => {
 
     await waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
-    expect(result.current.status).toBe("idle");
+    await waitFor(() => expect(result.current.status).toBe("idle"));
   });
 
   it("stays offline and skips cloud when startup has no network", async () => {
