@@ -4,6 +4,11 @@ import { useTodoSync, type TodoSyncRunner } from "./useTodoSync";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 
+type SyncHookProps = {
+  userId: string | null;
+  refresh: () => Promise<void>;
+};
+
 function setOnline(value: boolean) {
   Object.defineProperty(navigator, "onLine", {
     configurable: true,
@@ -145,13 +150,15 @@ describe("useTodoSync", () => {
     const runner = vi.fn<TodoSyncRunner>().mockImplementation(() => first.promise);
     const signedInRefresh = vi.fn().mockResolvedValue(undefined);
     const signedOutRefresh = vi.fn().mockResolvedValue(undefined);
+    const initialProps: SyncHookProps = {
+      userId: USER_ID,
+      refresh: signedInRefresh,
+    };
 
     const { rerender } = renderHook(
-      ({ userId, refresh }: { userId: string | null; refresh: () => Promise<void> }) =>
+      ({ userId, refresh }: SyncHookProps) =>
         useTodoSync(userId, refresh, runner),
-      {
-        initialProps: { userId: USER_ID, refresh: signedInRefresh },
-      },
+      { initialProps },
     );
 
     await waitFor(() => expect(runner).toHaveBeenCalledTimes(1));
