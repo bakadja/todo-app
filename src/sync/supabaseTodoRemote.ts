@@ -23,7 +23,11 @@ export function remoteToLocal(
 }
 
 export class SupabaseTodoRemote implements TodoRemote {
-  constructor(private readonly client: SupabaseClient) {}
+  private readonly client: SupabaseClient;
+
+  constructor(client: SupabaseClient) {
+    this.client = client;
+  }
 
   async push(todo: LocalTodoRecord): Promise<RemoteTodoRecord> {
     const { data, error } = await this.client.rpc("sync_todo_lww", {
