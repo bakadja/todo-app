@@ -1,7 +1,12 @@
 import "fake-indexeddb/auto";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createTodoDb, ownerKeyForUser, type TodoDb } from "../storage/todoDb";
+import {
+  createTodoDb,
+  ownerKeyForUser,
+  type OwnerKey,
+  type TodoDb,
+} from "../storage/todoDb";
 import { LocalTodoRepository } from "../storage/todoRepository";
 import { useTodoAppState } from "./useTodoAppState";
 
@@ -148,8 +153,9 @@ describe("useTodoAppState", () => {
     await repository.add("User task", userOwner, 2000);
 
     const { result, rerender } = renderHook(
-      ({ owner }) => useTodoAppState(owner, repository, db),
-      { initialProps: { owner: "anonymous" as const } },
+      ({ owner }: { owner: OwnerKey }) =>
+        useTodoAppState(owner, repository, db),
+      { initialProps: { owner: "anonymous" as OwnerKey } },
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.state.todos.map((todo) => todo.title)).toEqual([
