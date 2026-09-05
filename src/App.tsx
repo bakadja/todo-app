@@ -9,6 +9,7 @@ import { SharedTodoCard } from "./components/SharedTodoCard";
 import { SyncStatus } from "./components/SyncStatus";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
+import { UndoSnackbar } from "./components/UndoSnackbar";
 import { useTodoAppState } from "./hooks/useTodoAppState";
 import { useTodoSync } from "./hooks/useTodoSync";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
@@ -18,6 +19,8 @@ import {
   readSharedTodoFromSearch,
   stripShareTargetParams,
 } from "./utils/sharedTodo";
+
+const UNDO_DELETE_MS = 5000;
 
 function App() {
   const initialShare = useMemo(() => {
@@ -30,12 +33,19 @@ function App() {
   const [sharedTodo, setSharedTodo] = useState<string | null>(
     initialShare.draft,
   );
+  const [undoTodoId, setUndoTodoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialShare.marked) return;
     const cleanPath = stripShareTargetParams(new URL(window.location.href));
     window.history.replaceState(window.history.state, "", cleanPath);
   }, [initialShare]);
+
+  useEffect(() => {
+    if (!undoTodoId) return;
+    const timeout = window.setTimeout(() => setUndoTodoId(null), UNDO_DELETE_MS);
+    return () => window.clearTimeout(timeout);
+  }, [undoTodoId]);
 
   const { user, localUserId } = useAuth();
   const effectiveUserId = user?.id ?? localUserId;
@@ -64,6 +74,15 @@ function App() {
 
   const handleRemove = async (id: string) => {
     await local.remove(id);
+    setUndoTodoId(id);
+    void sync.requestSync();
+  };
+
+  const handleUndoRemove = async () => {
+    if (!undoTodoId) return;
+    const id = undoTodoId;
+    setUndoTodoId(null);
+    await local.restore(id);
     void sync.requestSync();
   };
 
@@ -104,6 +123,9 @@ function App() {
           )}
         </section>
       </main>
+      {undoTodoId ? (
+        <UndoSnackbar onUndo={() => void handleUndoRemove()} />
+      ) : null}
     </div>
   );
 }
