@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPanel } from "./components/AuthPanel";
+import { ConfirmDeleteModal } from "./components/ConfirmDeleteModal";
 import { EmptyState } from "./components/EmptyState";
 import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
@@ -30,6 +31,7 @@ function App() {
   const [sharedTodo, setSharedTodo] = useState<string | null>(
     initialShare.draft,
   );
+  const [deleteTodoId, setDeleteTodoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialShare.marked) return;
@@ -62,7 +64,10 @@ function App() {
     void sync.requestSync();
   };
 
-  const handleRemove = async (id: string) => {
+  const handleConfirmRemove = async () => {
+    if (!deleteTodoId) return;
+    const id = deleteTodoId;
+    setDeleteTodoId(null);
     await local.remove(id);
     void sync.requestSync();
   };
@@ -98,12 +103,18 @@ function App() {
             <TodoList
               todos={visibleTodos}
               onToggle={(id) => void handleToggle(id)}
-              onRemove={(id) => void handleRemove(id)}
+              onRemove={setDeleteTodoId}
               onEdit={(id, title) => void handleEdit(id, title)}
             />
           )}
         </section>
       </main>
+      {deleteTodoId ? (
+        <ConfirmDeleteModal
+          onCancel={() => setDeleteTodoId(null)}
+          onConfirm={() => void handleConfirmRemove()}
+        />
+      ) : null}
     </div>
   );
 }
