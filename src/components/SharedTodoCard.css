@@ -1,0 +1,116 @@
+.shared-todo {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 95, 138, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 250, 252, 0.96);
+}
+
+.shared-todo__intro {
+  display: grid;
+  gap: 4px;
+}
+
+.shared-todo__intro h2,
+.shared-todo__intro p {
+  margin: 0;
+}
+
+.shared-todo__intro h2 {
+  font-size: 1.05rem;
+}
+
+.shared-todo__intro p {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.shared-todo__eyebrow {
+  color: #b53661;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shared-todo__field {
+  display: grid;
+  gap: 6px;
+}
+
+.shared-todo__field > span {
+  color: #555564;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.shared-todo__field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 112px;
+  padding: 12px 14px;
+  border: 1px solid rgba(27, 27, 31, 0.12);
+  border-radius: 14px;
+  outline: none;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.shared-todo__field textarea:focus {
+  border-color: rgba(255, 95, 138, 0.65);
+  box-shadow: 0 0 0 3px rgba(255, 95, 138, 0.12);
+}
+
+.shared-todo__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.shared-todo__button {
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.shared-todo__button--primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(255, 95, 138, 0.24);
+}
+
+.shared-todo__button--secondary {
+  border-color: rgba(27, 27, 31, 0.1);
+  background: #fff;
+  color: #4c4c5a;
+}
+
+.shared-todo__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 640px) {
+  .shared-todo__field textarea {
+    min-height: 132px;
+    resize: none;
+  }
+
+  .shared-todo__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shared-todo__button {
+    width: 100%;
+    min-height: 48px;
+  }
+}
