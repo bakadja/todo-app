@@ -19,8 +19,17 @@ import {
   readInviteCallback,
   stripInviteCallbackParams,
 } from "./inviteCallback";
+import {
+  readRecoveryCallback,
+  stripRecoveryCallbackParams,
+} from "./recoveryCallback";
 
 export type InviteOnboardingState =
+  | { status: "idle" }
+  | { status: "needs-password" }
+  | { status: "error"; message: string };
+
+export type RecoveryOnboardingState =
   | { status: "idle" }
   | { status: "needs-password" }
   | { status: "error"; message: string };
@@ -30,6 +39,7 @@ export interface AuthContextValue {
   localUserId: string | null;
   loading: boolean;
   inviteOnboarding: InviteOnboardingState;
+  recoveryOnboarding: RecoveryOnboardingState;
   signIn(email: string, password: string): Promise<string | null>;
   requestPasswordReset(email: string): Promise<string | null>;
   setPassword(password: string): Promise<string | null>;
@@ -55,6 +65,8 @@ export function AuthProvider({
   const [loading, setLoading] = useState(true);
   const [inviteOnboarding, setInviteOnboarding] =
     useState<InviteOnboardingState>({ status: "idle" });
+  const [recoveryOnboarding, setRecoveryOnboarding] =
+    useState<RecoveryOnboardingState>({ status: "idle" });
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +114,42 @@ export function AuthProvider({
         setUser(invitedUser);
         setLocalUserId(invitedUser.id);
         setInviteOnboarding({ status: "needs-password" });
+        setLoading(false);
+        return;
+      }
+
+      const recovery = readRecoveryCallback(new URL(window.location.href));
+      if (recovery.kind === "token") {
+        const { data, error } = await client.auth.verifyOtp({
+          token_hash: recovery.tokenHash,
+          type: "recovery",
+        });
+
+        window.history.replaceState(
+          window.history.state,
+          "",
+          stripRecoveryCallbackParams(new URL(window.location.href)),
+        );
+
+        if (cancelled) return;
+
+        const recoveryUser = data.session?.user ?? null;
+        if (error || !recoveryUser) {
+          setUser(null);
+          setRecoveryOnboarding({
+            status: "error",
+            message: "This password reset link is invalid or has expired.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        await setActiveUserId(recoveryUser.id, db);
+        if (cancelled) return;
+
+        setUser(recoveryUser);
+        setLocalUserId(recoveryUser.id);
+        setRecoveryOnboarding({ status: "needs-password" });
         setLoading(false);
         return;
       }
@@ -202,6 +250,7 @@ export function AuthProvider({
       setUser(null);
       setLocalUserId(null);
       setInviteOnboarding({ status: "idle" });
+      setRecoveryOnboarding({ status: "idle" });
     }
   }, [client, db]);
 
@@ -211,6 +260,7 @@ export function AuthProvider({
       localUserId,
       loading,
       inviteOnboarding,
+      recoveryOnboarding,
       signIn,
       requestPasswordReset,
       setPassword,
@@ -222,6 +272,7 @@ export function AuthProvider({
       localUserId,
       loading,
       inviteOnboarding,
+      recoveryOnboarding,
       signIn,
       requestPasswordReset,
       setPassword,
