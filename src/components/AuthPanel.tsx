@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthContext";
 
 export function AuthPanel() {
   const { user, loading, signIn, signOut } = useAuth();
+  const [mode, setMode] = useState<"sign-in" | "reset-request">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,48 @@ export function AuthPanel() {
           Sign out
         </button>
       </div>
+    );
+  }
+
+  if (mode === "reset-request") {
+    return (
+      <form className="auth-panel auth-panel--signed-out">
+        <div className="auth-panel__intro">
+          <span className="auth-panel__eyebrow">Cloud sync</span>
+          <h2>Reset your password</h2>
+          <p>Enter your email to receive a password reset link.</p>
+        </div>
+
+        <div className="auth-panel__form-row">
+          <label className="auth-panel__field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+
+          <div className="auth-panel__actions">
+            <button
+              type="submit"
+              className="auth-panel__button auth-panel__button--primary"
+            >
+              Send reset link
+            </button>
+            <button
+              type="button"
+              className="auth-panel__button"
+              onClick={() => setMode("sign-in")}
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </form>
     );
   }
 
@@ -97,6 +140,7 @@ export function AuthPanel() {
           <button
             type="button"
             className="auth-panel__button"
+            onClick={() => setMode("reset-request")}
           >
             Forgot password?
           </button>
