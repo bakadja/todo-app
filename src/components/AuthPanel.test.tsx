@@ -22,6 +22,7 @@ const baseAuth = {
   signIn: vi.fn(async () => null),
   requestPasswordReset: vi.fn(async () => null),
   setPassword: vi.fn(async () => null),
+  dismissRecoveryError: vi.fn(),
   signOut: vi.fn(async () => undefined),
 };
 
@@ -118,6 +119,26 @@ describe("AuthPanel", () => {
       screen.getByRole("button", { name: "Update password" }),
     ).toBeTruthy();
     expect(screen.queryByText("Account")).toBeNull();
+  });
+
+  it("shows invalid recovery guidance without hiding local-data reassurance", () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      recoveryOnboarding: {
+        status: "error",
+        message: "This password reset link is invalid or has expired.",
+      },
+    });
+
+    render(<AuthPanel />);
+
+    expect(
+      screen.getByRole("alert").textContent,
+    ).toBe("This password reset link is invalid or has expired.");
+    expect(screen.getByText("Your local todos are still available.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to sign in" }));
+    expect(baseAuth.dismissRecoveryError).toHaveBeenCalledTimes(1);
   });
 
   it("renders a compact signed-in account card with a styled sign-out action", () => {
