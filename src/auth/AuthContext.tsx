@@ -233,6 +233,7 @@ export function AuthProvider({
       if (error) return error.message;
 
       setInviteOnboarding({ status: "idle" });
+      setRecoveryOnboarding({ status: "idle" });
       return null;
     },
     [client, user],
