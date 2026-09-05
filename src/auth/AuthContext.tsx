@@ -21,7 +21,6 @@ export interface AuthContextValue {
   localUserId: string | null;
   loading: boolean;
   signIn(email: string, password: string): Promise<string | null>;
-  signUp(email: string, password: string): Promise<string | null>;
   signOut(): Promise<void>;
 }
 
@@ -116,25 +115,6 @@ export function AuthProvider({
     [client, db],
   );
 
-  const signUp = useCallback(
-    async (email: string, password: string): Promise<string | null> => {
-      if (!client) return "Supabase is not configured";
-
-      const { data, error } = await client.auth.signUp({ email, password });
-      if (error) return error.message;
-
-      const signedInUser = data.session?.user ?? null;
-      if (signedInUser) {
-        await setActiveUserId(signedInUser.id, db);
-        setUser(signedInUser);
-        setLocalUserId(signedInUser.id);
-      }
-
-      return null;
-    },
-    [client, db],
-  );
-
   const signOut = useCallback(async () => {
     try {
       await client?.auth.signOut();
@@ -146,8 +126,8 @@ export function AuthProvider({
   }, [client, db]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, localUserId, loading, signIn, signUp, signOut }),
-    [user, localUserId, loading, signIn, signUp, signOut],
+    () => ({ user, localUserId, loading, signIn, signOut }),
+    [user, localUserId, loading, signIn, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
