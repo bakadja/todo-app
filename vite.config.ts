@@ -16,13 +16,13 @@ export default defineConfig({
         theme_color: "#ffffff",
         background_color: "#ffffff",
         share_target: {
-          action: "/?share-target=1",
+          action: "/",
           method: "GET",
           enctype: "application/x-www-form-urlencoded",
           params: {
-            title: "title",
-            text: "text",
-            url: "url",
+            title: "share_title",
+            text: "share_text",
+            url: "share_url",
           },
         },
       },
