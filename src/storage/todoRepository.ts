@@ -106,23 +106,6 @@ export class LocalTodoRepository {
     return next;
   }
 
-  async restore(
-    id: string,
-    ownerKey: OwnerKey,
-    now = Date.now(),
-  ): Promise<LocalTodoRecord> {
-    const row = await this.requireForOwner(id, ownerKey);
-    const next: LocalTodoRecord = {
-      ...row,
-      deletedAt: null,
-      updatedAt: Math.max(now, row.updatedAt + 1),
-      syncStatus: "pending",
-      lastSyncError: null,
-    };
-    await this.db.todos.put(next);
-    return next;
-  }
-
   async claimAnonymous(
     ownerKey: Exclude<OwnerKey, "anonymous">,
   ): Promise<void> {
