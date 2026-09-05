@@ -8,6 +8,10 @@ export type SharedTodoParams = {
 
 const clean = (value?: string | null) => value?.trim() ?? "";
 
+export function isShareTargetSearch(search: string): boolean {
+  return new URLSearchParams(search).get(SHARE_TARGET_MARKER) === "1";
+}
+
 export function normalizeSharedTodo({
   title,
   text,
@@ -30,9 +34,9 @@ export function normalizeSharedTodo({
 }
 
 export function readSharedTodoFromSearch(search: string): string | null {
-  const params = new URLSearchParams(search);
-  if (params.get(SHARE_TARGET_MARKER) !== "1") return null;
+  if (!isShareTargetSearch(search)) return null;
 
+  const params = new URLSearchParams(search);
   return normalizeSharedTodo({
     title: params.get("title"),
     text: params.get("text"),
