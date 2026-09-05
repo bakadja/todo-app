@@ -13,7 +13,6 @@ const baseAuth = {
   user: null,
   localUserId: null,
   signIn: vi.fn(async () => null),
-  signUp: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 };
 
@@ -23,14 +22,22 @@ describe("AuthPanel", () => {
     mockUseAuth.mockReturnValue(baseAuth);
   });
 
-  it("renders an accessible signed-out account card with distinct actions", () => {
+  it("renders invite-only cloud sign-in without public account creation", () => {
     render(<AuthPanel />);
 
-    expect(screen.getByRole("heading", { name: "Sync your todos everywhere" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Sync your todos everywhere" }),
+    ).toBeTruthy();
     expect(screen.getByLabelText("Email")).toBeTruthy();
     expect(screen.getByLabelText("Password")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Sign in" }).classList.contains("auth-panel__button--primary")).toBe(true);
-    expect(screen.getByRole("button", { name: "Create account" }).classList.contains("auth-panel__button--secondary")).toBe(true);
+    expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create account" })).toBeNull();
+    expect(screen.getByText("Cloud access is invite-only.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "You can still use Todo Pop locally without an account.",
+      ),
+    ).toBeTruthy();
   });
 
   it("renders a compact signed-in account card with a styled sign-out action", () => {
@@ -43,6 +50,10 @@ describe("AuthPanel", () => {
 
     expect(screen.getByText("Account")).toBeTruthy();
     expect(screen.getByText("user@example.com")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Sign out" }).classList.contains("auth-panel__button--signout")).toBe(true);
+    expect(
+      screen
+        .getByRole("button", { name: "Sign out" })
+        .classList.contains("auth-panel__button--signout"),
+    ).toBe(true);
   });
 });
