@@ -121,6 +121,51 @@ describe("AuthPanel", () => {
     expect(screen.queryByText("Account")).toBeNull();
   });
 
+  it("submits the recovered password when both entries match", async () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: "recovery-user", email: "recover@example.com" },
+      recoveryOnboarding: { status: "needs-password" },
+    });
+
+    render(<AuthPanel />);
+
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "new-strong-password-123" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "new-strong-password-123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+
+    await waitFor(() => {
+      expect(baseAuth.setPassword).toHaveBeenCalledWith(
+        "new-strong-password-123",
+      );
+    });
+  });
+
+  it("rejects mismatched recovered passwords before calling Supabase", () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: "recovery-user", email: "recover@example.com" },
+      recoveryOnboarding: { status: "needs-password" },
+    });
+
+    render(<AuthPanel />);
+
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "new-strong-password-123" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "different-password-456" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(screen.getByRole("alert").textContent).toBe("Passwords do not match.");
+    expect(baseAuth.setPassword).not.toHaveBeenCalled();
+  });
+
   it("shows invalid recovery guidance without hiding local-data reassurance", () => {
     mockUseAuth.mockReturnValue({
       ...baseAuth,
