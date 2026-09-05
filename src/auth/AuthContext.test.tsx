@@ -201,6 +201,34 @@ describe("AuthProvider", () => {
     expect(await getActiveUserId(db)).toBe("recovery-user");
   });
 
+  it("sets the recovered user's password and completes recovery", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?token_hash=recovery-token&type=recovery",
+    );
+    const recoveryUser = makeUser("recovery-user", "recover@example.com");
+    const fake = createFakeClient({ invitedUser: recoveryUser });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <AuthProvider client={fake.client} db={db}>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      expect(
+        await result.current.setPassword("new-strong-password-123"),
+      ).toBeNull();
+    });
+
+    expect(fake.updateUserCalls).toEqual([
+      { password: "new-strong-password-123" },
+    ]);
+    expect(result.current.recoveryOnboarding).toEqual({ status: "idle" });
+    expect(result.current.user?.id).toBe("recovery-user");
+  });
+
   it("does not erase the remembered owner on a sessionless auth event", async () => {
     await setActiveUserId("remembered-user", db);
     const fake = createFakeClient();
