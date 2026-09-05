@@ -31,6 +31,7 @@ export interface AuthContextValue {
   loading: boolean;
   inviteOnboarding: InviteOnboardingState;
   signIn(email: string, password: string): Promise<string | null>;
+  requestPasswordReset(email: string): Promise<string | null>;
   setPassword(password: string): Promise<string | null>;
   dismissInviteError(): void;
   signOut(): Promise<void>;
@@ -165,6 +166,16 @@ export function AuthProvider({
     [client, db],
   );
 
+  const requestPasswordReset = useCallback(
+    async (email: string): Promise<string | null> => {
+      if (!client) return "Supabase is not configured";
+
+      const { error } = await client.auth.resetPasswordForEmail(email);
+      return error?.message ?? null;
+    },
+    [client],
+  );
+
   const setPassword = useCallback(
     async (password: string): Promise<string | null> => {
       if (!client) return "Supabase is not configured";
@@ -201,6 +212,7 @@ export function AuthProvider({
       loading,
       inviteOnboarding,
       signIn,
+      requestPasswordReset,
       setPassword,
       dismissInviteError,
       signOut,
@@ -211,6 +223,7 @@ export function AuthProvider({
       loading,
       inviteOnboarding,
       signIn,
+      requestPasswordReset,
       setPassword,
       dismissInviteError,
       signOut,
