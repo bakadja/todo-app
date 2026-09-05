@@ -38,6 +38,27 @@ describe("LocalTodoRepository", () => {
     expect((await repo.get(row.id))?.deletedAt).toBe(2000);
   });
 
+  it("restores a deleted todo as a newer pending version", async () => {
+    const row = await repo.add("Restore me", "anonymous", 1000);
+    await repo.softDelete(row.id, "anonymous", 2000);
+
+    const restored = await repo.restore(row.id, "anonymous", 3000);
+
+    expect(restored).toMatchObject({
+      id: row.id,
+      title: "Restore me",
+      completed: false,
+      createdAt: 1000,
+      updatedAt: 3000,
+      deletedAt: null,
+      syncStatus: "pending",
+      lastSyncError: null,
+    });
+    expect((await repo.listVisible("anonymous")).map((todo) => todo.id)).toEqual([
+      row.id,
+    ]);
+  });
+
   it("retries interrupted syncing rows", async () => {
     const row = await repo.add("Retry me", "anonymous", 1000);
     await repo.markSyncing(row.id);
