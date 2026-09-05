@@ -98,6 +98,14 @@ export function useTodoAppState(
     [ownerKey, repository],
   );
 
+  const restore = useCallback(
+    async (id: string) => {
+      const row = await repository.restore(id, ownerKey);
+      dispatch({ type: "upsert", todo: toUiTodo(row) });
+    },
+    [ownerKey, repository],
+  );
+
   const setFilter = useCallback((filter: Filter) => {
     saveFilterPreference(filter);
     dispatch({ type: "setFilter", filter });
@@ -110,6 +118,7 @@ export function useTodoAppState(
     toggle,
     edit,
     remove,
+    restore,
     setFilter,
     refresh,
   };
