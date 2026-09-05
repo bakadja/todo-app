@@ -12,6 +12,7 @@ export function AuthPanel() {
     signIn,
     requestPasswordReset,
     setPassword: updatePassword,
+    dismissRecoveryError,
     signOut,
   } = useAuth();
   const [mode, setMode] = useState<"sign-in" | "reset-request">("sign-in");
@@ -99,6 +100,38 @@ export function AuthPanel() {
           </p>
         ) : null}
       </form>
+    );
+  }
+
+  if (recoveryOnboarding.status === "error") {
+    return (
+      <section className="auth-panel auth-panel--signed-out">
+        <div className="auth-panel__intro">
+          <span className="auth-panel__eyebrow">Account recovery</span>
+          <h2>Reset link unavailable</h2>
+          <p className="auth-panel__error" role="alert">
+            {recoveryOnboarding.message}
+          </p>
+          <p className="auth-panel__helper">
+            Your local todos are still available.
+          </p>
+        </div>
+
+        <div className="auth-panel__actions">
+          <button
+            type="button"
+            className="auth-panel__button"
+            onClick={() => {
+              dismissRecoveryError();
+              setMode("sign-in");
+              setError(null);
+              setResetRequested(false);
+            }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </section>
     );
   }
 
