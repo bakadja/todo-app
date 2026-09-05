@@ -37,3 +37,7 @@ enable_signup = false
 [auth.email.template.invite]
 subject = "You've been invited to Todo Pop"
 content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Todo Pop password"
+content_path = "./supabase/templates/recovery.html"
