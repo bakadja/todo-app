@@ -7,9 +7,12 @@ import {
 } from "./sharedTodo";
 
 describe("isShareTargetSearch", () => {
-  it("detects only the explicit share-target marker", () => {
-    expect(isShareTargetSearch("?share-target=1&title=Guide")).toBe(true);
-    expect(isShareTargetSearch("?title=Guide")).toBe(false);
+  it("detects only namespaced share target params", () => {
+    expect(isShareTargetSearch("?share_title=Guide")).toBe(true);
+    expect(isShareTargetSearch("?share_text=Read%20later")).toBe(true);
+    expect(isShareTargetSearch("?share_url=https%3A%2F%2Fexample.com")).toBe(true);
+    expect(isShareTargetSearch("?title=Guide&url=https%3A%2F%2Fexample.com")).toBe(false);
+    expect(isShareTargetSearch("?filter=active")).toBe(false);
   });
 });
 
@@ -47,9 +50,9 @@ describe("normalizeSharedTodo", () => {
   });
 
   it("supports url-only shares", () => {
-    expect(
-      normalizeSharedTodo({ url: " https://example.com " }),
-    ).toBe("https://example.com");
+    expect(normalizeSharedTodo({ url: " https://example.com " })).toBe(
+      "https://example.com",
+    );
   });
 
   it("returns null for an empty payload", () => {
@@ -58,25 +61,27 @@ describe("normalizeSharedTodo", () => {
 });
 
 describe("readSharedTodoFromSearch", () => {
-  it("requires the explicit share-target marker", () => {
+  it("ignores ordinary title/text/url query params", () => {
     expect(
-      readSharedTodoFromSearch("?title=Normal&page=text&url=https%3A%2F%2Fexample.com"),
+      readSharedTodoFromSearch(
+        "?title=Normal&text=Page&url=https%3A%2F%2Fexample.com",
+      ),
     ).toBeNull();
   });
 
-  it("reads marked share parameters", () => {
+  it("reads namespaced share parameters", () => {
     expect(
       readSharedTodoFromSearch(
-        "?share-target=1&title=Guide&url=https%3A%2F%2Fexample.com",
+        "?share_title=Guide&share_url=https%3A%2F%2Fexample.com",
       ),
     ).toBe("Guide\nhttps://example.com");
   });
 });
 
 describe("stripShareTargetParams", () => {
-  it("removes only share parameters and preserves unrelated query/hash values", () => {
+  it("removes only namespaced share params and preserves unrelated query/hash values", () => {
     const url = new URL(
-      "https://tasks.kevinngongang.dev/?share-target=1&title=Guide&text=Read&url=https%3A%2F%2Fexample.com&filter=active#top",
+      "https://tasks.kevinngongang.dev/?share_title=Guide&share_text=Read&share_url=https%3A%2F%2Fexample.com&filter=active#top",
     );
 
     expect(stripShareTargetParams(url)).toBe("/?filter=active#top");
