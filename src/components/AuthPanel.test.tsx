@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthPanel } from "./AuthPanel";
 
@@ -68,6 +74,27 @@ describe("AuthPanel", () => {
     ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Back to sign in" }),
+    ).toBeTruthy();
+  });
+
+  it("requests a reset email and shows generic confirmation", async () => {
+    render(<AuthPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+
+    await waitFor(() => {
+      expect(baseAuth.requestPasswordReset).toHaveBeenCalledWith(
+        "user@example.com",
+      );
+    });
+    expect(
+      screen.getByText(
+        "If an account exists for this email, you'll receive a password reset link.",
+      ),
     ).toBeTruthy();
   });
 
