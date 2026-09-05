@@ -40,6 +40,14 @@ describe("AuthPanel", () => {
     ).toBeTruthy();
   });
 
+  it("offers password recovery from the signed-out sign-in form", () => {
+    render(<AuthPanel />);
+
+    expect(
+      screen.getByRole("button", { name: "Forgot password?" }),
+    ).toBeTruthy();
+  });
+
   it("renders a compact signed-in account card with a styled sign-out action", () => {
     mockUseAuth.mockReturnValue({
       ...baseAuth,
