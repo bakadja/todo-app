@@ -49,6 +49,24 @@ jobs:
         run: |
           test -f dist/sw.js
           test -f dist/manifest.webmanifest
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const manifest = JSON.parse(readFileSync("dist/manifest.webmanifest", "utf8"));
+          const expected = {
+            action: "/",
+            method: "GET",
+            enctype: "application/x-www-form-urlencoded",
+            params: {
+              title: "share_title",
+              text: "share_text",
+              url: "share_url",
+            },
+          };
+          if (JSON.stringify(manifest.share_target) !== JSON.stringify(expected)) {
+            console.error("Unexpected share_target:", manifest.share_target);
+            process.exit(1);
+          }
+          NODE
 
       - name: Verify no Supabase server secrets are referenced in source
         shell: bash
