@@ -1,4 +1,8 @@
-export const SHARE_TARGET_MARKER = "share-target";
+export const SHARE_TARGET_PARAMS = {
+  title: "share_title",
+  text: "share_text",
+  url: "share_url",
+} as const;
 
 export type SharedTodoParams = {
   title?: string | null;
@@ -9,7 +13,8 @@ export type SharedTodoParams = {
 const clean = (value?: string | null) => value?.trim() ?? "";
 
 export function isShareTargetSearch(search: string): boolean {
-  return new URLSearchParams(search).get(SHARE_TARGET_MARKER) === "1";
+  const params = new URLSearchParams(search);
+  return Object.values(SHARE_TARGET_PARAMS).some((name) => params.has(name));
 }
 
 export function normalizeSharedTodo({
@@ -38,18 +43,17 @@ export function readSharedTodoFromSearch(search: string): string | null {
 
   const params = new URLSearchParams(search);
   return normalizeSharedTodo({
-    title: params.get("title"),
-    text: params.get("text"),
-    url: params.get("url"),
+    title: params.get(SHARE_TARGET_PARAMS.title),
+    text: params.get(SHARE_TARGET_PARAMS.text),
+    url: params.get(SHARE_TARGET_PARAMS.url),
   });
 }
 
 export function stripShareTargetParams(url: URL): string {
   const cleanUrl = new URL(url.toString());
-  cleanUrl.searchParams.delete(SHARE_TARGET_MARKER);
-  cleanUrl.searchParams.delete("title");
-  cleanUrl.searchParams.delete("text");
-  cleanUrl.searchParams.delete("url");
+  for (const name of Object.values(SHARE_TARGET_PARAMS)) {
+    cleanUrl.searchParams.delete(name);
+  }
 
   const search = cleanUrl.searchParams.toString();
   return `${cleanUrl.pathname}${search ? `?${search}` : ""}${cleanUrl.hash}`;
