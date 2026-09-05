@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  isShareTargetSearch,
   normalizeSharedTodo,
   readSharedTodoFromSearch,
   stripShareTargetParams,
 } from "./sharedTodo";
+
+describe("isShareTargetSearch", () => {
+  it("detects only the explicit share-target marker", () => {
+    expect(isShareTargetSearch("?share-target=1&title=Guide")).toBe(true);
+    expect(isShareTargetSearch("?title=Guide")).toBe(false);
+  });
+});
 
 describe("normalizeSharedTodo", () => {
   it("combines title, text, and url in order", () => {
