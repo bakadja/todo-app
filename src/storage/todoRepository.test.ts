@@ -59,6 +59,15 @@ describe("LocalTodoRepository", () => {
     ]);
   });
 
+  it("makes restore strictly newer than the delete tombstone", async () => {
+    const row = await repo.add("Fast undo", "anonymous", 1000);
+    await repo.softDelete(row.id, "anonymous", 2000);
+
+    const restored = await repo.restore(row.id, "anonymous", 2000);
+
+    expect(restored.updatedAt).toBe(2001);
+  });
+
   it("retries interrupted syncing rows", async () => {
     const row = await repo.add("Retry me", "anonymous", 1000);
     await repo.markSyncing(row.id);
