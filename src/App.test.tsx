@@ -1,5 +1,4 @@
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -13,7 +12,6 @@ const add = vi.fn(async () => undefined);
 const toggle = vi.fn(async () => undefined);
 const edit = vi.fn(async () => undefined);
 const remove = vi.fn(async () => undefined);
-const restore = vi.fn(async () => undefined);
 const setFilter = vi.fn();
 const requestSync = vi.fn(async () => undefined);
 const refresh = vi.fn(async () => undefined);
@@ -39,12 +37,11 @@ const baseLocalState = {
   toggle,
   edit,
   remove,
-  restore,
   setFilter,
   refresh,
 };
 
-const undoTodos = [
+const deleteTodos = [
   {
     id: "todo-a",
     title: "Todo A",
@@ -71,10 +68,7 @@ beforeEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-afterEach(() => {
-  cleanup();
-  vi.useRealTimers();
-});
+afterEach(cleanup);
 
 describe("App share target", () => {
   it("shows a namespaced share and consumes only its query params", () => {
@@ -149,78 +143,43 @@ describe("App share target", () => {
   });
 });
 
-describe("App undo delete", () => {
+describe("App confirm delete", () => {
   beforeEach(() => {
     mockUseTodoAppState.mockReturnValue({
       ...baseLocalState,
-      state: { todos: undoTodos, filter: "all" as const },
+      state: { todos: deleteTodos, filter: "all" as const },
     });
   });
 
-  it("syncs a delete immediately and restores the same todo on Undo", async () => {
+  it("opens a confirmation dialog without deleting or syncing", () => {
     render(<App />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
-      await Promise.resolve();
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
 
-    expect(remove).toHaveBeenCalledWith("todo-a");
-    expect(requestSync).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Todo removed")).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-      await Promise.resolve();
-    });
-
-    expect(restore).toHaveBeenCalledWith("todo-a");
-    expect(requestSync).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Delete this todo?" })).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
+    expect(requestSync).not.toHaveBeenCalled();
   });
 
-  it("expires the Undo action after 5 seconds", async () => {
-    vi.useFakeTimers();
+  it("cancels the dialog without deleting or syncing", () => {
     render(<App />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
-      await Promise.resolve();
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel delete" }));
 
-    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
-
-    act(() => vi.advanceTimersByTime(4999));
-    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
-
-    act(() => vi.advanceTimersByTime(1));
-    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+    expect(requestSync).not.toHaveBeenCalled();
   });
 
-  it("lets only the latest deletion be undone and restarts the timer", async () => {
-    vi.useFakeTimers();
+  it("deletes and syncs once after confirmation", async () => {
     render(<App />);
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
-      await Promise.resolve();
-    });
-    act(() => vi.advanceTimersByTime(4000));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
 
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Remove Todo B" }));
-      await Promise.resolve();
-    });
-    act(() => vi.advanceTimersByTime(1001));
-
-    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-      await Promise.resolve();
-    });
-
-    expect(restore).toHaveBeenCalledTimes(1);
-    expect(restore).toHaveBeenCalledWith("todo-b");
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("todo-a"));
+    await waitFor(() => expect(requestSync).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
