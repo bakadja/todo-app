@@ -166,7 +166,7 @@ describe("AuthPanel", () => {
     expect(baseAuth.setPassword).not.toHaveBeenCalled();
   });
 
-  it("shows invalid recovery guidance without hiding local-data reassurance", () => {
+  it("offers another reset request when a recovery link is invalid", () => {
     mockUseAuth.mockReturnValue({
       ...baseAuth,
       recoveryOnboarding: {
@@ -177,13 +177,18 @@ describe("AuthPanel", () => {
 
     render(<AuthPanel />);
 
-    expect(
-      screen.getByRole("alert").textContent,
-    ).toBe("This password reset link is invalid or has expired.");
+    expect(screen.getByRole("alert").textContent).toBe(
+      "This password reset link is invalid or has expired.",
+    );
     expect(screen.getByText("Your local todos are still available.")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back to sign in" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Request another reset link" }),
+    );
     expect(baseAuth.dismissRecoveryError).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("heading", { name: "Reset your password" }),
+    ).toBeTruthy();
   });
 
   it("renders a compact signed-in account card with a styled sign-out action", () => {
