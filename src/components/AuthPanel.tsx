@@ -94,6 +94,12 @@ export function AuthPanel() {
           >
             Sign in
           </button>
+          <button
+            type="button"
+            className="auth-panel__button"
+          >
+            Forgot password?
+          </button>
         </div>
       </div>
 
