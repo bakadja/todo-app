@@ -173,6 +173,34 @@ describe("AuthProvider", () => {
     expect(fake.resetPasswordForEmailCalls).toEqual(["user@example.com"]);
   });
 
+  it("exchanges a valid recovery token and requires a new password", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/?token_hash=recovery-token&type=recovery",
+    );
+    const recoveryUser = makeUser("recovery-user", "recover@example.com");
+    const fake = createFakeClient({ invitedUser: recoveryUser });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <AuthProvider client={fake.client} db={db}>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(fake.verifyOtpCalls).toEqual([
+      { token_hash: "recovery-token", type: "recovery" },
+    ]);
+    expect(result.current.user?.id).toBe("recovery-user");
+    expect(result.current.localUserId).toBe("recovery-user");
+    expect(result.current.recoveryOnboarding).toEqual({
+      status: "needs-password",
+    });
+    expect(window.location.search).toBe("");
+    expect(await getActiveUserId(db)).toBe("recovery-user");
+  });
+
   it("does not erase the remembered owner on a sessionless auth event", async () => {
     await setActiveUserId("remembered-user", db);
     const fake = createFakeClient();
