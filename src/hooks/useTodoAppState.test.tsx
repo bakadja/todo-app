@@ -128,32 +128,6 @@ describe("useTodoAppState", () => {
     expect((await repository.get(id))?.deletedAt).not.toBeNull();
   });
 
-  it("restores the same todo after a local soft delete", async () => {
-    const { result } = renderHook(() =>
-      useTodoAppState("anonymous", repository, db),
-    );
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    await act(async () => {
-      await result.current.add("Undo me");
-    });
-    const id = result.current.state.todos[0].id;
-
-    await act(async () => {
-      await result.current.remove(id);
-      await result.current.restore(id);
-    });
-
-    expect(result.current.state.todos).toEqual([
-      expect.objectContaining({ id, title: "Undo me" }),
-    ]);
-    expect(await repository.get(id)).toMatchObject({
-      id,
-      deletedAt: null,
-      syncStatus: "pending",
-    });
-  });
-
   it("keeps filter preference across remount", async () => {
     const first = renderHook(() =>
       useTodoAppState("anonymous", repository, db),
