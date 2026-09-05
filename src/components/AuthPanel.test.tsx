@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthPanel } from "./AuthPanel";
 
@@ -13,6 +13,7 @@ const baseAuth = {
   user: null,
   localUserId: null,
   signIn: vi.fn(async () => null),
+  requestPasswordReset: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 };
 
@@ -49,6 +50,24 @@ describe("AuthPanel", () => {
 
     expect(
       screen.getByRole("button", { name: "Forgot password?" }),
+    ).toBeTruthy();
+  });
+
+  it("opens the password reset request form inline", () => {
+    render(<AuthPanel />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Forgot password?" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Reset your password" }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("Email")).toBeTruthy();
+    expect(screen.queryByLabelText("Password")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Send reset link" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Back to sign in" }),
     ).toBeTruthy();
   });
 
