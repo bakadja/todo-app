@@ -167,12 +167,19 @@ describe("AuthPanel", () => {
   });
 
   it("offers another reset request when a recovery link is invalid", () => {
+    const dismissRecoveryError = vi.fn(() => {
+      mockUseAuth.mockReturnValue({
+        ...baseAuth,
+        recoveryOnboarding: { status: "idle" },
+      });
+    });
     mockUseAuth.mockReturnValue({
       ...baseAuth,
       recoveryOnboarding: {
         status: "error",
         message: "This password reset link is invalid or has expired.",
       },
+      dismissRecoveryError,
     });
 
     render(<AuthPanel />);
@@ -185,7 +192,7 @@ describe("AuthPanel", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Request another reset link" }),
     );
-    expect(baseAuth.dismissRecoveryError).toHaveBeenCalledTimes(1);
+    expect(dismissRecoveryError).toHaveBeenCalledTimes(1);
     expect(
       screen.getByRole("heading", { name: "Reset your password" }),
     ).toBeTruthy();
