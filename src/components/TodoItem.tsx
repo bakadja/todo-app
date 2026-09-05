@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./TodoItem.css";
 import type { Todo } from "../state/todosReducer";
 
 type TodoItemProps = {
