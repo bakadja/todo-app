@@ -93,11 +93,12 @@
 **Files:**
 - No source changes required unless verification finds a defect.
 
-- [ ] **Step 1: Wait for the latest branch CI after documentation commits.**
-  Expected: `test-and-build` is `completed / success`.
-- [ ] **Step 2: Inspect PR #8 changed files and confirm there are no Todo schema/RLS/sync changes.**
-- [ ] **Step 3: Verify Cloudflare preview deployment succeeds for the PR head.**
-- [ ] **Step 4: Perform pre-merge review against the approved spec.**
+- [x] **Step 1: Verify the latest branch CI is `completed / success`.**
+- [x] **Step 2: Inspect PR #8 changed files and confirm there are no Todo schema/RLS/sync changes.**
+- [x] **Step 3: Verify Cloudflare preview deployment succeeds for the PR head.**
+- [x] **Step 4: Perform pre-merge review against the approved spec.**
+
+Review result: no critical or important source-code issue found. The custom `TokenHash` + `verifyOtp(type: "recovery")` flow matches Supabase's supported email-template pattern. The only operational nuance is that the hosted template uses `SiteURL`, so before merge the email naturally points at production; preview acceptance must preserve the query string while switching the host to the branch preview URL.
 
 ### Task 6: Hosted Supabase cutover and manual acceptance
 
@@ -114,9 +115,10 @@
 ```
 
 - [ ] **Step 3: Confirm hosted Site URL remains `https://tasks.kevinngongang.dev/` and public signup remains OFF.**
-- [ ] **Step 4: On PR preview, sign out and trigger `Forgot password?` for an existing invited account.**
+- [ ] **Step 4: Open the branch preview `https://feat-password-recovery.todo-app-79m.pages.dev`, sign out, and trigger `Forgot password?` for an existing invited account.**
 - [ ] **Step 5: Verify the generic confirmation appears and the Resend email arrives.**
-- [ ] **Step 6: Open the recovery link, set a new password, and verify the user remains signed in with Todos synced.**
-- [ ] **Step 7: Sign out, confirm the old password fails, then confirm the new password succeeds.**
-- [ ] **Step 8: Reopen the consumed recovery link and verify `This password reset link is invalid or has expired.` while local Todos remain available.**
-- [ ] **Step 9: After all acceptance checks pass, squash-merge PR #8 into `master`, verify post-merge CI/Cloudflare production, then delete `feat/password-recovery`.**
+- [ ] **Step 6: For pre-merge preview validation, open the email link, then replace only the origin `https://tasks.kevinngongang.dev` with `https://feat-password-recovery.todo-app-79m.pages.dev` while keeping the complete `?token_hash=...&type=recovery` query unchanged. Load that preview URL, set a new password, and verify the user remains signed in with Todos synced.**
+- [ ] **Step 7: Sign out on the preview, confirm the old password fails, then confirm the new password succeeds.**
+- [ ] **Step 8: Reopen the consumed recovery URL on the preview and verify `This password reset link is invalid or has expired.` while local Todos remain available.**
+- [ ] **Step 9: After all acceptance checks pass, squash-merge PR #8 into `master`, verify post-merge CI/Cloudflare production, then test one normal production recovery email without changing its host.**
+- [ ] **Step 10: Delete `feat/password-recovery` after production acceptance passes.**
