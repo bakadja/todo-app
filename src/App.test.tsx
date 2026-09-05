@@ -52,11 +52,11 @@ describe("App share target", () => {
     window.history.replaceState({}, "", "/");
   });
 
-  it("shows a marked share and consumes only its query params", () => {
+  it("shows a namespaced share and consumes only its query params", () => {
     window.history.replaceState(
       {},
       "",
-      "/?share-target=1&title=Guide&url=https%3A%2F%2Fexample.com&filter=active",
+      "/?share_title=Guide&share_url=https%3A%2F%2Fexample.com&filter=active",
     );
 
     render(<App />);
@@ -67,8 +67,8 @@ describe("App share target", () => {
     expect(window.location.search).toBe("?filter=active");
   });
 
-  it("cleans even an empty marked share without showing a card", () => {
-    window.history.replaceState({}, "", "/?share-target=1&filter=active");
+  it("does not show a share card when no namespaced share params exist", () => {
+    window.history.replaceState({}, "", "/?filter=active");
 
     render(<App />);
 
@@ -76,7 +76,7 @@ describe("App share target", () => {
     expect(window.location.search).toBe("?filter=active");
   });
 
-  it("ignores unmarked title/url parameters", () => {
+  it("ignores ordinary title/url parameters", () => {
     window.history.replaceState(
       {},
       "",
@@ -89,7 +89,7 @@ describe("App share target", () => {
   });
 
   it("adds shared text through existing add and sync handlers", async () => {
-    window.history.replaceState({}, "", "/?share-target=1&title=Guide");
+    window.history.replaceState({}, "", "/?share_title=Guide");
 
     render(<App />);
     fireEvent.change(screen.getByLabelText("Shared todo content"), {
@@ -103,7 +103,7 @@ describe("App share target", () => {
   });
 
   it("cancels without adding or syncing", () => {
-    window.history.replaceState({}, "", "/?share-target=1&title=Guide");
+    window.history.replaceState({}, "", "/?share_title=Guide");
 
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Cancel shared todo" }));
@@ -113,7 +113,7 @@ describe("App share target", () => {
   });
 
   it("does not recreate a consumed draft after remount", () => {
-    window.history.replaceState({}, "", "/?share-target=1&title=Guide");
+    window.history.replaceState({}, "", "/?share_title=Guide");
 
     const first = render(<App />);
     expect(screen.getByLabelText("Shared todo content")).toBeTruthy();
