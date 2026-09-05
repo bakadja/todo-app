@@ -9,6 +9,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const add = vi.fn(async () => undefined);
+const toggle = vi.fn(async () => undefined);
+const edit = vi.fn(async () => undefined);
+const remove = vi.fn(async () => undefined);
+const setFilter = vi.fn();
 const requestSync = vi.fn(async () => undefined);
 const refresh = vi.fn(async () => undefined);
 const mockUseAuth = vi.fn();
@@ -30,28 +34,43 @@ const baseLocalState = {
   state: { todos: [], filter: "all" as const },
   loading: false,
   add,
-  toggle: vi.fn(async () => undefined),
-  edit: vi.fn(async () => undefined),
-  remove: vi.fn(async () => undefined),
-  setFilter: vi.fn(),
+  toggle,
+  edit,
+  remove,
+  setFilter,
   refresh,
 };
+
+const deleteTodos = [
+  {
+    id: "todo-a",
+    title: "Todo A",
+    completed: false,
+    createdAt: 2000,
+  },
+  {
+    id: "todo-b",
+    title: "Todo B",
+    completed: false,
+    createdAt: 1000,
+  },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUseAuth.mockReturnValue({ user: null, localUserId: null });
+  mockUseTodoAppState.mockReturnValue(baseLocalState);
+  mockUseTodoSync.mockReturnValue({
+    status: "idle",
+    lastError: null,
+    requestSync,
+  });
+  window.history.replaceState({}, "", "/");
+});
 
 afterEach(cleanup);
 
 describe("App share target", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAuth.mockReturnValue({ user: null, localUserId: null });
-    mockUseTodoAppState.mockReturnValue(baseLocalState);
-    mockUseTodoSync.mockReturnValue({
-      status: "idle",
-      lastError: null,
-      requestSync,
-    });
-    window.history.replaceState({}, "", "/");
-  });
-
   it("shows a namespaced share and consumes only its query params", () => {
     window.history.replaceState(
       {},
@@ -121,5 +140,46 @@ describe("App share target", () => {
 
     render(<App />);
     expect(screen.queryByLabelText("Shared todo content")).toBeNull();
+  });
+});
+
+describe("App confirm delete", () => {
+  beforeEach(() => {
+    mockUseTodoAppState.mockReturnValue({
+      ...baseLocalState,
+      state: { todos: deleteTodos, filter: "all" as const },
+    });
+  });
+
+  it("opens a confirmation dialog without deleting or syncing", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+
+    expect(screen.getByRole("dialog", { name: "Delete this todo?" })).toBeTruthy();
+    expect(remove).not.toHaveBeenCalled();
+    expect(requestSync).not.toHaveBeenCalled();
+  });
+
+  it("cancels the dialog without deleting or syncing", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel delete" }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(remove).not.toHaveBeenCalled();
+    expect(requestSync).not.toHaveBeenCalled();
+  });
+
+  it("deletes and syncs once after confirmation", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
+
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("todo-a"));
+    await waitFor(() => expect(requestSync).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
