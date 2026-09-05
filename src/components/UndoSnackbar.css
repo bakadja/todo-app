@@ -1,0 +1,47 @@
+.undo-snackbar {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(420px, calc(100vw - 24px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px 12px 16px;
+  border-radius: 14px;
+  background: #24242b;
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.undo-snackbar span {
+  font-weight: 600;
+}
+
+.undo-snackbar button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #ff8daf;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.undo-snackbar button:focus-visible {
+  outline: 3px solid rgba(255, 141, 175, 0.45);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .undo-snackbar {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .undo-snackbar button {
+    min-height: 44px;
+  }
+}
