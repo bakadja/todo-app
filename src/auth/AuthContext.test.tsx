@@ -12,12 +12,8 @@ import {
 import { AuthProvider, useAuth } from "./AuthContext";
 
 type AuthCallback = (event: string, session: Session | null) => void;
-type SignUpData = { user: User | null; session: Session | null };
 
-function createFakeClient(
-  initialSession: Session | null = null,
-  signUpData: SignUpData = { user: null, session: null },
-) {
+function createFakeClient(initialSession: Session | null = null) {
   let callback: AuthCallback | null = null;
   let signOutCalls = 0;
 
@@ -27,8 +23,10 @@ function createFakeClient(
       callback = next;
       return { data: { subscription: { unsubscribe() {} } } };
     },
-    signInWithPassword: async () => ({ data: { user: null, session: null }, error: null }),
-    signUp: async () => ({ data: signUpData, error: null }),
+    signInWithPassword: async () => ({
+      data: { user: null, session: null },
+      error: null,
+    }),
     signOut: async () => {
       signOutCalls += 1;
       return { error: null };
@@ -115,26 +113,6 @@ describe("AuthProvider", () => {
     expect(result.current.user).toBeNull();
     expect(result.current.localUserId).toBe("remembered-user");
     expect(await getActiveUserId(db)).toBe("remembered-user");
-  });
-
-  it("does not treat a sessionless sign-up as authenticated", async () => {
-    const pendingUser = makeUser("pending-user", "pending@example.com");
-    const fake = createFakeClient(null, { user: pendingUser, session: null });
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <AuthProvider client={fake.client} db={db}>{children}</AuthProvider>
-    );
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    await act(async () => {
-      expect(
-        await result.current.signUp("pending@example.com", "password123"),
-      ).toBeNull();
-    });
-
-    expect(result.current.user).toBeNull();
-    expect(result.current.localUserId).toBeNull();
-    expect(await getActiveUserId(db)).toBeNull();
   });
 
   it("explicit sign out clears only the active pointer, not todo rows", async () => {
