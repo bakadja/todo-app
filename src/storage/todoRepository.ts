@@ -115,7 +115,7 @@ export class LocalTodoRepository {
     const next: LocalTodoRecord = {
       ...row,
       deletedAt: null,
-      updatedAt: now,
+      updatedAt: Math.max(now, row.updatedAt + 1),
       syncStatus: "pending",
       lastSyncError: null,
     };
