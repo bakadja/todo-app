@@ -27,7 +27,7 @@ describe("TodoItem", () => {
 
     const editor = screen.getByLabelText("Edit todo");
     expect(editor.tagName).toBe("TEXTAREA");
-    expect(editor).toHaveValue(longTitle);
+    expect((editor as HTMLTextAreaElement).value).toBe(longTitle);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy();
   });
