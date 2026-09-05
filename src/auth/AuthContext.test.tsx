@@ -30,6 +30,7 @@ function createFakeClient({
   let signOutCalls = 0;
   const verifyOtpCalls: unknown[] = [];
   const updateUserCalls: unknown[] = [];
+  const resetPasswordForEmailCalls: unknown[] = [];
 
   const auth = {
     getSession: async () => ({ data: { session: initialSession }, error: null }),
@@ -41,6 +42,10 @@ function createFakeClient({
       data: { user: null, session: null },
       error: null,
     }),
+    resetPasswordForEmail: async (email: string) => {
+      resetPasswordForEmailCalls.push(email);
+      return { data: {}, error: null };
+    },
     verifyOtp: async (input: unknown) => {
       verifyOtpCalls.push(input);
       if (verifyOtpError) {
@@ -88,6 +93,9 @@ function createFakeClient({
     },
     get updateUserCalls() {
       return updateUserCalls;
+    },
+    get resetPasswordForEmailCalls() {
+      return resetPasswordForEmailCalls;
     },
   };
 }
@@ -145,6 +153,24 @@ describe("AuthProvider", () => {
     expect(result.current.user?.id).toBe("signed-user");
     expect(result.current.localUserId).toBe("signed-user");
     expect(await getActiveUserId(db)).toBe("signed-user");
+  });
+
+  it("requests a recovery email for the supplied address", async () => {
+    const fake = createFakeClient();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <AuthProvider client={fake.client} db={db}>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      expect(
+        await result.current.requestPasswordReset("user@example.com"),
+      ).toBeNull();
+    });
+
+    expect(fake.resetPasswordForEmailCalls).toEqual(["user@example.com"]);
   });
 
   it("does not erase the remembered owner on a sessionless auth event", async () => {
