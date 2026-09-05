@@ -18,8 +18,10 @@ const baseAuth = {
   loading: false,
   user: null,
   localUserId: null,
+  recoveryOnboarding: { status: "idle" as const },
   signIn: vi.fn(async () => null),
   requestPasswordReset: vi.fn(async () => null),
+  setPassword: vi.fn(async () => null),
   signOut: vi.fn(async () => undefined),
 };
 
@@ -96,6 +98,26 @@ describe("AuthPanel", () => {
         "If an account exists for this email, you'll receive a password reset link.",
       ),
     ).toBeTruthy();
+  });
+
+  it("renders a new-password form after a valid recovery callback", () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: "recovery-user", email: "recover@example.com" },
+      recoveryOnboarding: { status: "needs-password" },
+    });
+
+    render(<AuthPanel />);
+
+    expect(
+      screen.getByRole("heading", { name: "Choose a new password" }),
+    ).toBeTruthy();
+    expect(screen.getByLabelText("New password")).toBeTruthy();
+    expect(screen.getByLabelText("Confirm new password")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Update password" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Account")).toBeNull();
   });
 
   it("renders a compact signed-in account card with a styled sign-out action", () => {
