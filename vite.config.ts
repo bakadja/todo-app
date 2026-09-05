@@ -15,6 +15,16 @@ export default defineConfig({
         start_url: "/",
         theme_color: "#ffffff",
         background_color: "#ffffff",
+        share_target: {
+          action: "/?share-target=1",
+          method: "GET",
+          enctype: "application/x-www-form-urlencoded",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+          },
+        },
       },
       workbox: {
         navigateFallback: "/index.html",
