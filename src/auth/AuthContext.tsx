@@ -44,6 +44,7 @@ export interface AuthContextValue {
   requestPasswordReset(email: string): Promise<string | null>;
   setPassword(password: string): Promise<string | null>;
   dismissInviteError(): void;
+  dismissRecoveryError(): void;
   signOut(): Promise<void>;
 }
 
@@ -243,6 +244,10 @@ export function AuthProvider({
     setInviteOnboarding({ status: "idle" });
   }, []);
 
+  const dismissRecoveryError = useCallback(() => {
+    setRecoveryOnboarding({ status: "idle" });
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await client?.auth.signOut();
@@ -266,6 +271,7 @@ export function AuthProvider({
       requestPasswordReset,
       setPassword,
       dismissInviteError,
+      dismissRecoveryError,
       signOut,
     }),
     [
@@ -278,6 +284,7 @@ export function AuthProvider({
       requestPasswordReset,
       setPassword,
       dismissInviteError,
+      dismissRecoveryError,
       signOut,
     ],
   );
