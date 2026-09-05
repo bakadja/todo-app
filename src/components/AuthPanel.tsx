@@ -1,12 +1,16 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
 
+const RESET_CONFIRMATION =
+  "If an account exists for this email, you'll receive a password reset link.";
+
 export function AuthPanel() {
-  const { user, loading, signIn, signOut } = useAuth();
+  const { user, loading, signIn, requestPasswordReset, signOut } = useAuth();
   const [mode, setMode] = useState<"sign-in" | "reset-request">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [resetRequested, setResetRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) {
@@ -40,9 +44,28 @@ export function AuthPanel() {
     );
   }
 
+  const handleResetRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setResetRequested(false);
+
+    const message = await requestPasswordReset(email);
+
+    if (message) {
+      setError(message);
+    } else {
+      setResetRequested(true);
+    }
+    setSubmitting(false);
+  };
+
   if (mode === "reset-request") {
     return (
-      <form className="auth-panel auth-panel--signed-out">
+      <form
+        className="auth-panel auth-panel--signed-out"
+        onSubmit={(event) => void handleResetRequest(event)}
+      >
         <div className="auth-panel__intro">
           <span className="auth-panel__eyebrow">Cloud sync</span>
           <h2>Reset your password</h2>
@@ -66,18 +89,35 @@ export function AuthPanel() {
             <button
               type="submit"
               className="auth-panel__button auth-panel__button--primary"
+              disabled={submitting}
             >
               Send reset link
             </button>
             <button
               type="button"
               className="auth-panel__button"
-              onClick={() => setMode("sign-in")}
+              onClick={() => {
+                setMode("sign-in");
+                setError(null);
+                setResetRequested(false);
+              }}
             >
               Back to sign in
             </button>
           </div>
         </div>
+
+        {resetRequested ? (
+          <p className="auth-panel__helper" role="status">
+            {RESET_CONFIRMATION}
+          </p>
+        ) : null}
+
+        {error ? (
+          <p className="auth-panel__error" role="alert">
+            {error}
+          </p>
+        ) : null}
       </form>
     );
   }
@@ -140,7 +180,11 @@ export function AuthPanel() {
           <button
             type="button"
             className="auth-panel__button"
-            onClick={() => setMode("reset-request")}
+            onClick={() => {
+              setMode("reset-request");
+              setError(null);
+              setResetRequested(false);
+            }}
           >
             Forgot password?
           </button>
