@@ -15,13 +15,24 @@ import {
   setActiveUserId,
 } from "../storage/deviceIdentity";
 import { todoDb, type TodoDb } from "../storage/todoDb";
+import {
+  readInviteCallback,
+  stripInviteCallbackParams,
+} from "./inviteCallback";
+
+export type InviteOnboardingState =
+  | { status: "idle" }
+  | { status: "needs-password" }
+  | { status: "error"; message: string };
 
 export interface AuthContextValue {
   user: User | null;
   localUserId: string | null;
   loading: boolean;
+  inviteOnboarding: InviteOnboardingState;
   signIn(email: string, password: string): Promise<string | null>;
-  signUp(email: string, password: string): Promise<string | null>;
+  setPassword(password: string): Promise<string | null>;
+  dismissInviteError(): void;
   signOut(): Promise<void>;
 }
 
@@ -41,6 +52,8 @@ export function AuthProvider({
   const [user, setUser] = useState<User | null>(null);
   const [localUserId, setLocalUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteOnboarding, setInviteOnboarding] =
+    useState<InviteOnboardingState>({ status: "idle" });
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +65,42 @@ export function AuthProvider({
       setLocalUserId(rememberedUserId);
 
       if (!client) {
+        setLoading(false);
+        return;
+      }
+
+      const invite = readInviteCallback(new URL(window.location.href));
+      if (invite.kind === "token") {
+        const { data, error } = await client.auth.verifyOtp({
+          token_hash: invite.tokenHash,
+          type: "invite",
+        });
+
+        window.history.replaceState(
+          window.history.state,
+          "",
+          stripInviteCallbackParams(new URL(window.location.href)),
+        );
+
+        if (cancelled) return;
+
+        const invitedUser = data.session?.user ?? null;
+        if (error || !invitedUser) {
+          setUser(null);
+          setInviteOnboarding({
+            status: "error",
+            message: "This invitation is invalid or has expired.",
+          });
+          setLoading(false);
+          return;
+        }
+
+        await setActiveUserId(invitedUser.id, db);
+        if (cancelled) return;
+
+        setUser(invitedUser);
+        setLocalUserId(invitedUser.id);
+        setInviteOnboarding({ status: "needs-password" });
         setLoading(false);
         return;
       }
@@ -116,24 +165,23 @@ export function AuthProvider({
     [client, db],
   );
 
-  const signUp = useCallback(
-    async (email: string, password: string): Promise<string | null> => {
+  const setPassword = useCallback(
+    async (password: string): Promise<string | null> => {
       if (!client) return "Supabase is not configured";
+      if (!user) return "You must be signed in to set a password";
 
-      const { data, error } = await client.auth.signUp({ email, password });
+      const { error } = await client.auth.updateUser({ password });
       if (error) return error.message;
 
-      const signedInUser = data.session?.user ?? null;
-      if (signedInUser) {
-        await setActiveUserId(signedInUser.id, db);
-        setUser(signedInUser);
-        setLocalUserId(signedInUser.id);
-      }
-
+      setInviteOnboarding({ status: "idle" });
       return null;
     },
-    [client, db],
+    [client, user],
   );
+
+  const dismissInviteError = useCallback(() => {
+    setInviteOnboarding({ status: "idle" });
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -142,12 +190,31 @@ export function AuthProvider({
       await clearActiveUserId(db);
       setUser(null);
       setLocalUserId(null);
+      setInviteOnboarding({ status: "idle" });
     }
   }, [client, db]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, localUserId, loading, signIn, signUp, signOut }),
-    [user, localUserId, loading, signIn, signUp, signOut],
+    () => ({
+      user,
+      localUserId,
+      loading,
+      inviteOnboarding,
+      signIn,
+      setPassword,
+      dismissInviteError,
+      signOut,
+    }),
+    [
+      user,
+      localUserId,
+      loading,
+      inviteOnboarding,
+      signIn,
+      setPassword,
+      dismissInviteError,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

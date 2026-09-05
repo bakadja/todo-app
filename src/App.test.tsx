@@ -15,6 +15,8 @@ const remove = vi.fn(async () => undefined);
 const setFilter = vi.fn();
 const requestSync = vi.fn(async () => undefined);
 const refresh = vi.fn(async () => undefined);
+const setPassword = vi.fn(async () => null);
+const dismissInviteError = vi.fn();
 const mockUseAuth = vi.fn();
 const mockUseTodoAppState = vi.fn();
 const mockUseTodoSync = vi.fn();
@@ -29,6 +31,14 @@ vi.mock("./hooks/useTodoSync", () => ({
 vi.mock("./components/AuthPanel", () => ({
   AuthPanel: () => <div>Auth panel</div>,
 }));
+
+const baseAuth = {
+  user: null,
+  localUserId: null,
+  inviteOnboarding: { status: "idle" as const },
+  setPassword,
+  dismissInviteError,
+};
 
 const baseLocalState = {
   state: { todos: [], filter: "all" as const },
@@ -58,7 +68,7 @@ const deleteTodos = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseAuth.mockReturnValue({ user: null, localUserId: null });
+  mockUseAuth.mockReturnValue(baseAuth);
   mockUseTodoAppState.mockReturnValue(baseLocalState);
   mockUseTodoSync.mockReturnValue({
     status: "idle",
@@ -69,6 +79,40 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+describe("App invite onboarding", () => {
+  it("keeps local todo controls available while password setup is visible", () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      user: { id: "invited-user", email: "invite@example.com" },
+      localUserId: "invited-user",
+      inviteOnboarding: { status: "needs-password" as const },
+    });
+
+    render(<App />);
+
+    expect(screen.getByText("Welcome to Todo Pop")).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
+  });
+
+  it("keeps local todo controls available when an invitation is invalid", () => {
+    mockUseAuth.mockReturnValue({
+      ...baseAuth,
+      inviteOnboarding: {
+        status: "error" as const,
+        message: "This invitation is invalid or has expired.",
+      },
+    });
+
+    render(<App />);
+
+    expect(
+      screen.getByText("This invitation is invalid or has expired."),
+    ).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Add a task" })).toBeTruthy();
+  });
+});
 
 describe("App share target", () => {
   it("shows a namespaced share and consumes only its query params", () => {

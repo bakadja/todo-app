@@ -6,6 +6,7 @@ import { ConfirmDeleteModal } from "./components/ConfirmDeleteModal";
 import { EmptyState } from "./components/EmptyState";
 import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
+import { InviteOnboarding } from "./components/InviteOnboarding";
 import { SharedTodoCard } from "./components/SharedTodoCard";
 import { SyncStatus } from "./components/SyncStatus";
 import { TodoInput } from "./components/TodoInput";
@@ -82,6 +83,7 @@ function App() {
       <Header />
       <main className="app__main">
         <section className="card">
+          <InviteOnboarding />
           <AuthPanel />
           <SyncStatus status={sync.status} />
           {sharedTodo ? (

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
 
 export function AuthPanel() {
-  const { user, loading, signIn, signUp, signOut } = useAuth();
+  const { user, loading, signIn, signOut } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -39,28 +39,21 @@ export function AuthPanel() {
     );
   }
 
-  const run = async (action: "signIn" | "signUp") => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setSubmitting(true);
     setError(null);
 
-    const message =
-      action === "signIn"
-        ? await signIn(email, password)
-        : await signUp(email, password);
+    const message = await signIn(email, password);
 
     setError(message);
     setSubmitting(false);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    void run("signIn");
-  };
-
   return (
     <form
       className="auth-panel auth-panel--signed-out"
-      onSubmit={handleSubmit}
+      onSubmit={(event) => void handleSubmit(event)}
     >
       <div className="auth-panel__intro">
         <span className="auth-panel__eyebrow">Cloud sync</span>
@@ -101,15 +94,12 @@ export function AuthPanel() {
           >
             Sign in
           </button>
-          <button
-            type="button"
-            className="auth-panel__button auth-panel__button--secondary"
-            disabled={submitting}
-            onClick={() => void run("signUp")}
-          >
-            Create account
-          </button>
         </div>
+      </div>
+
+      <div className="auth-panel__invite-note">
+        <strong>Cloud access is invite-only.</strong>
+        <span>You can still use Todo Pop locally without an account.</span>
       </div>
 
       {error && (
