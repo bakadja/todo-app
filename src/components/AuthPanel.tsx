@@ -123,12 +123,12 @@ export function AuthPanel() {
             className="auth-panel__button"
             onClick={() => {
               dismissRecoveryError();
-              setMode("sign-in");
+              setMode("reset-request");
               setError(null);
               setResetRequested(false);
             }}
           >
-            Back to sign in
+            Request another reset link
           </button>
         </div>
       </section>
