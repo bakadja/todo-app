@@ -1,9 +1,11 @@
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { useAuth } from "./auth/AuthContext";
 import { AuthPanel } from "./components/AuthPanel";
 import { EmptyState } from "./components/EmptyState";
 import { Filters } from "./components/Filters";
 import { Header } from "./components/Header";
+import { SharedTodoCard } from "./components/SharedTodoCard";
 import { SyncStatus } from "./components/SyncStatus";
 import { TodoInput } from "./components/TodoInput";
 import { TodoList } from "./components/TodoList";
@@ -11,8 +13,30 @@ import { useTodoAppState } from "./hooks/useTodoAppState";
 import { useTodoSync } from "./hooks/useTodoSync";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
 import { ownerKeyForUser } from "./storage/todoDb";
+import {
+  isShareTargetSearch,
+  readSharedTodoFromSearch,
+  stripShareTargetParams,
+} from "./utils/sharedTodo";
 
 function App() {
+  const initialShare = useMemo(() => {
+    const search = window.location.search;
+    return {
+      marked: isShareTargetSearch(search),
+      draft: readSharedTodoFromSearch(search),
+    };
+  }, []);
+  const [sharedTodo, setSharedTodo] = useState<string | null>(
+    initialShare.draft,
+  );
+
+  useEffect(() => {
+    if (!initialShare.marked) return;
+    const cleanPath = stripShareTargetParams(new URL(window.location.href));
+    window.history.replaceState(window.history.state, "", cleanPath);
+  }, [initialShare]);
+
   const { user, localUserId } = useAuth();
   const effectiveUserId = user?.id ?? localUserId;
   const ownerKey = effectiveUserId
@@ -26,6 +50,11 @@ function App() {
   const handleAdd = async (title: string) => {
     await local.add(title);
     void sync.requestSync();
+  };
+
+  const handleSharedAdd = (title: string) => {
+    setSharedTodo(null);
+    void handleAdd(title);
   };
 
   const handleToggle = async (id: string) => {
@@ -50,6 +79,13 @@ function App() {
         <section className="card">
           <AuthPanel />
           <SyncStatus status={sync.status} />
+          {sharedTodo ? (
+            <SharedTodoCard
+              initialValue={sharedTodo}
+              onAdd={handleSharedAdd}
+              onCancel={() => setSharedTodo(null)}
+            />
+          ) : null}
           <TodoInput onAdd={(title) => void handleAdd(title)} />
           <Filters
             filter={local.state.filter}
