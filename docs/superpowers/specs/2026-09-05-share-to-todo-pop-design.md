@@ -5,13 +5,11 @@ Branch: `feat/share-to-todo-pop`
 
 ## Goal
 
-Allow an installed Android PWA to appear in the system Share menu so text and links from apps such as Chrome or YouTube can be captured as a Todo Pop task with minimal friction.
+Allow Todo Pop, when installed as an Android PWA, to appear in the Android Share menu so text and links from apps such as Chrome or YouTube can be captured as a Todo with minimal friction.
 
-The shared content must be shown in a dedicated editable card before creation. The user can either cancel or add it. Adding must reuse the existing Todo creation pipeline so offline-first storage and sync behavior remain unchanged.
+Shared content is never created immediately. Todo Pop first shows a dedicated editable `Shared todo` card. The user can edit the content, cancel, or add it. `Add` must reuse the existing Todo creation path so offline-first storage and sync semantics remain unchanged.
 
 ## Approved UX
-
-Primary flow:
 
 ```text
 Chrome / YouTube / another Android app
@@ -35,7 +33,7 @@ Chrome / YouTube / another Android app
                        Supabase
 ```
 
-The card uses a single editable text field. It may contain a title, shared text, and URL separated by line breaks.
+The card contains one editable multiline field. It may contain a title, shared text, and URL separated by line breaks.
 
 Example:
 
@@ -44,7 +42,7 @@ PostgreSQL Indexing Explained
 https://youtu.be/abc123
 ```
 
-`Add` immediately closes the card and creates the task through the normal Todo add flow. No intermediate success screen or extra confirmation is shown.
+`Add` closes the card immediately and creates the task. There is no second confirmation screen or success screen.
 
 `Cancel` closes the card and creates nothing.
 
@@ -52,40 +50,37 @@ https://youtu.be/abc123
 
 ### In scope
 
-- Android / Chromium PWA Web Share Target support.
+- Android/Chromium Web Share Target support for the installed PWA.
 - Shared `title`, `text`, and `url` values.
-- A dedicated `SharedTodoCard` shown inside the existing app UI.
+- A dedicated `SharedTodoCard` in the existing app UI.
 - One editable textarea containing normalized shared content.
 - Reuse of the existing `handleAdd(title)` path.
 - Capture while offline.
-- Capture while signed out, using the app's existing local-owner behavior.
-- URL cleanup after the share payload is consumed so refresh does not reopen the card.
-- Unit/component coverage for parsing and card behavior.
-- Manual validation on the Xiaomi device with the installed production/preview PWA.
+- Capture while signed out.
+- URL cleanup after the share payload is consumed so refresh cannot reopen the same draft.
+- Automated tests for parsing, card behavior, and app integration.
+- Manual validation on the Xiaomi device.
 
 ### Out of scope
 
-- Images.
-- PDFs.
-- File attachments.
-- Binary uploads.
+- Images, PDFs, files, attachments, or binary uploads.
 - Multiple shared items in one action.
+- New routes or a router solely for this feature.
+- New backend endpoints.
 - New Supabase schema or migrations.
 - New IndexedDB schema.
 - Changes to the Todo data model.
-- Changes to authentication or sync semantics.
+- Changes to auth or sync semantics.
 - Guaranteed parity on iOS or desktop share sheets.
 
 ## Architecture
-
-The implementation should stay intentionally small and reuse existing boundaries.
 
 ```text
 vite.config.ts manifest
         ↓
    Web Share Target
         ↓
-query parameters on app launch
+GET /?share-target=1&title=...&text=...&url=...
         ↓
 parseSharedTodo()
         ↓
@@ -102,14 +97,16 @@ existing sync.requestSync()
 Supabase when available/authenticated
 ```
 
-### PWA manifest
+The implementation should remain isolated and reuse existing boundaries rather than introducing a share-specific persistence or sync path.
 
-Add a Web Share Target declaration to the existing `VitePWA` manifest configuration.
+## PWA manifest
+
+Extend the existing `VitePWA` manifest configuration with a Web Share Target declaration.
 
 Recommended shape:
 
 ```text
-share_target.action = "/"
+share_target.action = "/?share-target=1"
 share_target.method = "GET"
 share_target.enctype = "application/x-www-form-urlencoded"
 share_target.params = {
@@ -119,13 +116,15 @@ share_target.params = {
 }
 ```
 
-A GET-based target is preferred because this feature only accepts text and URLs. It avoids the extra service-worker handling required for POST-based file/form payloads.
+The explicit `share-target=1` marker prevents normal application query parameters from being interpreted as a share payload.
 
-The root route remains the application entry point; no new routing subsystem is required.
+A GET target is preferred because this feature accepts only text and URLs. POST handling and service-worker form/file plumbing are unnecessary for this scope.
+
+The root app remains the entry point; no routing subsystem is added.
 
 ## Shared-content parsing
 
-Create a small pure utility, for example `src/utils/sharedTodo.ts`, responsible for reading and normalizing the share payload.
+Create a small pure utility such as `src/utils/sharedTodo.ts`.
 
 Inputs:
 
@@ -135,15 +134,15 @@ Inputs:
 
 Normalization rules:
 
-1. Trim leading/trailing whitespace from every supplied value.
+1. Trim leading and trailing whitespace from each supplied value.
 2. Ignore empty values.
 3. Preserve meaningful line breaks inside supplied text.
-4. Avoid adding the standalone `url` if that exact URL is already present in `text`.
-5. Avoid duplicate identical top-level values.
-6. Join the remaining values using a single newline.
-7. If the final normalized string is empty, return no shared Todo and do not render the card.
+4. Do not append the standalone `url` when that exact URL is already present in `text`.
+5. Collapse identical duplicate top-level values.
+6. Join remaining values with a single newline.
+7. If the normalized result is empty, return no shared Todo and render no card.
 
-Examples:
+Example:
 
 ```text
 title = "PostgreSQL Indexing Explained"
@@ -155,6 +154,8 @@ PostgreSQL Indexing Explained
 https://youtu.be/abc123
 ```
 
+URL-only example:
+
 ```text
 title = ""
 text  = ""
@@ -164,41 +165,42 @@ result:
 https://example.com
 ```
 
-The parser must remain independent from storage, React state, auth, and sync so it is easy to test.
+The parser must not depend on React, auth, IndexedDB, Supabase, or sync.
 
 ## Consuming the share payload
 
-When the app starts with share-target parameters:
+On app startup:
 
-1. Read the share-target values from `window.location.search`.
-2. Normalize them with `parseSharedTodo()`.
-3. If meaningful content exists, initialize the temporary shared-card state.
-4. Remove only the share-target parameters from the visible URL with `history.replaceState()`.
-5. Do not persist the draft share payload to IndexedDB or Supabase before the user presses `Add`.
+1. Check for the `share-target=1` marker.
+2. Read `title`, `text`, and `url` from `window.location.search`.
+3. Normalize them with `parseSharedTodo()`.
+4. If meaningful content exists, initialize temporary shared-card state.
+5. Remove the share marker and share parameters from the visible URL using `history.replaceState()` while preserving unrelated query parameters if any.
+6. Do not persist anything before the user presses `Add`.
 
-The URL cleanup is important because reloading the page must not recreate the same shared card.
-
-The share URL should include a marker such as `share-target=1` so regular app query parameters are not accidentally interpreted as shared data.
+Cleaning the URL immediately after consumption ensures that refresh cannot recreate the same shared draft.
 
 ## SharedTodoCard
 
-Create a focused component, for example `src/components/SharedTodoCard.tsx`.
+Create a focused component such as `src/components/SharedTodoCard.tsx`.
 
 Responsibilities:
 
 - Show a clear `Shared todo` heading.
-- Render one multiline textarea initialized with the normalized content.
-- Allow the user to edit the content before saving.
+- Render one multiline textarea initialized with normalized content.
+- Allow editing before save.
 - Provide `Cancel` and `Add` actions.
-- Keep controls touch-friendly and consistent with the current mobile design.
-- Disable or reject `Add` when the edited value contains only whitespace.
+- Keep buttons touch-friendly and visually consistent with PR #4.
+- Prevent creation when the edited value contains only whitespace.
 
-The component should not know about IndexedDB, Supabase, or sync. It receives callbacks such as:
+The component receives callbacks such as:
 
 ```text
 onAdd(value)
 onCancel()
 ```
+
+It must not know about IndexedDB, Supabase, auth, or sync.
 
 ## App integration
 
@@ -207,10 +209,10 @@ onCancel()
 On `Add`:
 
 1. Trim the edited shared text.
-2. Call the existing `handleAdd(title)` function.
-3. Clear the temporary shared-card state immediately.
+2. Clear the temporary shared-card state immediately.
+3. Call the existing `handleAdd(title)` path.
 
-This deliberately reuses the current pipeline:
+Existing pipeline:
 
 ```text
 handleAdd(title)
@@ -218,47 +220,62 @@ handleAdd(title)
   → sync.requestSync()
 ```
 
-No special share-specific persistence path should be introduced.
+No share-specific storage path is introduced.
 
 On `Cancel`:
 
-- Clear only the temporary shared-card state.
-- Do not call `local.add`.
-- Do not trigger sync for the discarded share.
+- clear only the temporary card state;
+- do not call `local.add`;
+- do not trigger sync for the discarded share.
 
 ## Offline and signed-out behavior
 
-The share feature must not require authentication or network access.
+The feature must not require authentication or network access.
 
-If the user is signed out or offline:
+When signed out, the existing app uses the `anonymous` local owner. A shared Todo added in that state is stored through the same local repository as any other anonymous Todo.
+
+When a user later signs in, the existing `useTodoAppState` flow calls `claimAnonymous(ownerKey)`, which reassigns anonymous local Todos to the authenticated owner and marks them pending for the normal sync engine. The share feature therefore does not need its own migration or reconciliation behavior.
 
 ```text
-Share → Todo Pop → Add → existing local IndexedDB owner
+signed out / offline
+      ↓
+Share → Add
+      ↓
+anonymous IndexedDB Todo
+      ↓
+later sign-in
+      ↓
+existing claimAnonymous()
+      ↓
+existing sync
+      ↓
+Supabase
 ```
 
-The task follows the app's existing offline/local behavior. When normal sync later becomes possible under the application's current auth/ownership rules, the existing sync system handles it. The share feature must not add a new synchronization mechanism.
+This design relies only on behavior that already exists in the application.
 
-## Error handling
+## Error and edge-case handling
 
-- Empty payload: do not render the card.
-- Whitespace-only edited value: do not create a Todo.
-- Malformed/non-URL text in the `url` parameter: treat it as text rather than rejecting the whole payload; Android share sources are not assumed to be perfectly consistent.
+- Empty payload: render no card.
+- Whitespace-only edited value: create nothing.
+- Malformed/non-URL content in the `url` parameter: treat it as text rather than rejecting the full payload.
 - Duplicate URL values: keep one copy.
-- Repeated page refresh after share consumption: the card must not reappear.
-- Storage/sync failure after `Add`: rely on the existing Todo add/sync error behavior rather than creating a separate share-specific error model.
+- Refresh after payload consumption: do not reopen the card.
+- Storage/sync errors after `Add`: use existing Todo add/sync error behavior rather than adding a share-specific error model.
+- Regular app URLs that happen to contain `title`, `text`, or `url` but no `share-target=1`: ignore them for share capture.
 
 ## Testing
 
-Use TDD for implementation.
+Implementation must follow TDD.
 
 ### Parser tests
 
 At minimum:
 
-- combines title + text + URL in the expected order;
+- combines title + text + URL in order;
 - removes an exact duplicate URL already present in text;
 - ignores blank fields;
-- collapses duplicate identical top-level values;
+- collapses identical duplicate top-level values;
 - handles URL-only shares;
 - returns no value for an empty payload.
 
@@ -266,7 +283,7 @@ At minimum:
 
 At minimum:
 
-- renders the normalized content in a textarea;
+- renders content in a textarea;
 - allows editing before add;
 - `Cancel` invokes only `onCancel`;
 - `Add` sends the edited value to `onAdd`;
@@ -276,11 +293,12 @@ At minimum:
 
 At minimum:
 
-- share-target query parameters cause the dedicated card to appear;
+- `share-target=1` + share parameters render the dedicated card;
 - consumed share parameters are removed from the URL;
-- regular app loads without a share marker do not show the card;
-- Add passes the shared text through the same app-level add handler used by normal Todo creation;
-- refresh after URL cleanup does not recreate the card.
+- unrelated query parameters are preserved during cleanup;
+- a regular app load without the marker does not show the card;
+- Add passes the shared text through the same app-level add path as a normal Todo;
+- refresh after cleanup does not recreate the card.
 
 ## Manual acceptance test
 
@@ -288,30 +306,31 @@ On the Xiaomi device with Todo Pop installed as a PWA:
 
 1. Open a Chrome page and use Android `Share`.
 2. Confirm Todo Pop appears as a share destination.
-3. Share a normal page with title + URL.
+3. Share a page with title + URL.
 4. Confirm the dedicated card appears with one editable textarea.
 5. Edit the content and press `Add`.
 6. Confirm the card disappears immediately and the Todo appears in the list.
-7. Confirm the task follows normal sync behavior when online and signed in.
-8. Repeat while offline and confirm the task is still created locally.
-9. Share again, press `Cancel`, and confirm no Todo is created.
-10. Refresh after consuming a share and confirm the card does not return.
-11. Test a source where the URL is present both as `text` and `url` and confirm it appears only once.
+7. Confirm normal sync when online and signed in.
+8. Repeat offline and confirm local creation still works.
+9. Repeat while signed out, then sign in and confirm the existing anonymous-claim/sync behavior carries the Todo into the account.
+10. Share again, press `Cancel`, and confirm no Todo is created.
+11. Refresh after consuming a share and confirm the card does not return.
+12. Test a source where the URL is present in both `text` and `url` and confirm it appears once.
 
 ## Acceptance criteria
 
-The feature is complete when all of the following are true:
+The feature is complete when:
 
 - Todo Pop appears in the Android Share menu when installed as a supported PWA.
 - Shared title/text/URL are combined into one editable field.
 - Exact duplicate URLs are not repeated.
 - The user can edit before saving.
 - `Cancel` creates nothing.
-- `Add` creates a normal Todo using the existing add/storage/sync path.
-- The feature works without a network connection.
-- The feature does not require the user to be signed in before capture.
-- Refresh does not recreate an already-consumed shared draft.
-- Existing auth, IndexedDB, Supabase, and sync behavior remain unchanged.
+- `Add` creates a normal Todo through the existing add/storage/sync path.
+- Capture works offline.
+- Capture works while signed out and follows the existing anonymous-claim behavior on later sign-in.
+- Refresh does not recreate an already-consumed draft.
+- Existing auth, IndexedDB, Supabase, and sync semantics remain unchanged.
 - Automated CI passes.
 - Manual Xiaomi validation passes.
 
@@ -319,7 +338,7 @@ The feature is complete when all of the following are true:
 
 - Keep the implementation small and isolated.
 - Do not add a router solely for this feature.
-- Do not add a new backend endpoint.
+- Do not add a backend endpoint.
 - Do not modify the Todo schema.
-- Do not widen the feature to attachments during implementation.
-- Follow the existing responsive visual language introduced in PR #4.
+- Do not widen scope to attachments during implementation.
+- Follow the current responsive visual language.
