@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -9,6 +10,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
 const add = vi.fn(async () => undefined);
+const toggle = vi.fn(async () => undefined);
+const edit = vi.fn(async () => undefined);
+const remove = vi.fn(async () => undefined);
+const restore = vi.fn(async () => undefined);
+const setFilter = vi.fn();
 const requestSync = vi.fn(async () => undefined);
 const refresh = vi.fn(async () => undefined);
 const mockUseAuth = vi.fn();
@@ -30,28 +36,47 @@ const baseLocalState = {
   state: { todos: [], filter: "all" as const },
   loading: false,
   add,
-  toggle: vi.fn(async () => undefined),
-  edit: vi.fn(async () => undefined),
-  remove: vi.fn(async () => undefined),
-  setFilter: vi.fn(),
+  toggle,
+  edit,
+  remove,
+  restore,
+  setFilter,
   refresh,
 };
 
-afterEach(cleanup);
+const undoTodos = [
+  {
+    id: "todo-a",
+    title: "Todo A",
+    completed: false,
+    createdAt: 2000,
+  },
+  {
+    id: "todo-b",
+    title: "Todo B",
+    completed: false,
+    createdAt: 1000,
+  },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUseAuth.mockReturnValue({ user: null, localUserId: null });
+  mockUseTodoAppState.mockReturnValue(baseLocalState);
+  mockUseTodoSync.mockReturnValue({
+    status: "idle",
+    lastError: null,
+    requestSync,
+  });
+  window.history.replaceState({}, "", "/");
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("App share target", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUseAuth.mockReturnValue({ user: null, localUserId: null });
-    mockUseTodoAppState.mockReturnValue(baseLocalState);
-    mockUseTodoSync.mockReturnValue({
-      status: "idle",
-      lastError: null,
-      requestSync,
-    });
-    window.history.replaceState({}, "", "/");
-  });
-
   it("shows a namespaced share and consumes only its query params", () => {
     window.history.replaceState(
       {},
@@ -121,5 +146,81 @@ describe("App share target", () => {
 
     render(<App />);
     expect(screen.queryByLabelText("Shared todo content")).toBeNull();
+  });
+});
+
+describe("App undo delete", () => {
+  beforeEach(() => {
+    mockUseTodoAppState.mockReturnValue({
+      ...baseLocalState,
+      state: { todos: undoTodos, filter: "all" as const },
+    });
+  });
+
+  it("syncs a delete immediately and restores the same todo on Undo", async () => {
+    render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+      await Promise.resolve();
+    });
+
+    expect(remove).toHaveBeenCalledWith("todo-a");
+    expect(requestSync).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Todo removed")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+      await Promise.resolve();
+    });
+
+    expect(restore).toHaveBeenCalledWith("todo-a");
+    expect(requestSync).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
+  it("expires the Undo action after 5 seconds", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
+
+    act(() => vi.advanceTimersByTime(4999));
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
+
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
+  it("lets only the latest deletion be undone and restarts the timer", async () => {
+    vi.useFakeTimers();
+    render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Todo A" }));
+      await Promise.resolve();
+    });
+    act(() => vi.advanceTimersByTime(4000));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Todo B" }));
+      await Promise.resolve();
+    });
+    act(() => vi.advanceTimersByTime(1001));
+
+    expect(screen.getByRole("button", { name: "Undo" })).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+      await Promise.resolve();
+    });
+
+    expect(restore).toHaveBeenCalledTimes(1);
+    expect(restore).toHaveBeenCalledWith("todo-b");
   });
 });
