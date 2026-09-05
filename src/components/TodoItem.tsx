@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./TodoItem.css";
 import type { Todo } from "../state/todosReducer";
 
 type TodoItemProps = {
@@ -37,8 +38,9 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
     <li className={todo.completed ? "todo-item is-complete" : "todo-item"}>
       {isEditing ? (
         <div className="todo-item__edit">
-          <input
+          <textarea
             value={draft}
+            rows={3}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") commit();
