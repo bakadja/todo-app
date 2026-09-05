@@ -53,10 +53,14 @@ jobs:
           import { readFileSync } from "node:fs";
           const manifest = JSON.parse(readFileSync("dist/manifest.webmanifest", "utf8"));
           const expected = {
-            action: "/?share-target=1",
+            action: "/",
             method: "GET",
             enctype: "application/x-www-form-urlencoded",
-            params: { title: "title", text: "text", url: "url" },
+            params: {
+              title: "share_title",
+              text: "share_text",
+              url: "share_url",
+            },
           };
           if (JSON.stringify(manifest.share_target) !== JSON.stringify(expected)) {
             console.error("Unexpected share_target:", manifest.share_target);
