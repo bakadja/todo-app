@@ -229,6 +229,35 @@ describe("AuthProvider", () => {
     expect(result.current.user?.id).toBe("recovery-user");
   });
 
+  it("keeps local ownership and todos when recovery is invalid", async () => {
+    const repository = new LocalTodoRepository(db);
+    await repository.add("Keep local todo", "anonymous", 1000);
+    await setActiveUserId("remembered-user", db);
+    window.history.replaceState(
+      {},
+      "",
+      "/?token_hash=expired-token&type=recovery",
+    );
+    const fake = createFakeClient({ verifyOtpError: "Token has expired" });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <AuthProvider client={fake.client} db={db}>{children}</AuthProvider>
+    );
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.user).toBeNull();
+    expect(result.current.localUserId).toBe("remembered-user");
+    expect(result.current.recoveryOnboarding).toEqual({
+      status: "error",
+      message: "This password reset link is invalid or has expired.",
+    });
+    expect(await getActiveUserId(db)).toBe("remembered-user");
+    expect(await db.todos.count()).toBe(1);
+    expect(window.location.search).toBe("");
+  });
+
   it("does not erase the remembered owner on a sessionless auth event", async () => {
     await setActiveUserId("remembered-user", db);
     const fake = createFakeClient();
