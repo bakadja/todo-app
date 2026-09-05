@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthPanel } from "./AuthPanel";
 
 const mockUseAuth = vi.fn();
@@ -20,6 +20,10 @@ describe("AuthPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue(baseAuth);
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("renders invite-only cloud sign-in without public account creation", () => {
