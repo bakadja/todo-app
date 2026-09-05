@@ -5,10 +5,19 @@ const RESET_CONFIRMATION =
   "If an account exists for this email, you'll receive a password reset link.";
 
 export function AuthPanel() {
-  const { user, loading, signIn, requestPasswordReset, signOut } = useAuth();
+  const {
+    user,
+    loading,
+    recoveryOnboarding,
+    signIn,
+    requestPasswordReset,
+    setPassword: updatePassword,
+    signOut,
+  } = useAuth();
   const [mode, setMode] = useState<"sign-in" | "reset-request">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [resetRequested, setResetRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -18,6 +27,78 @@ export function AuthPanel() {
       <div className="auth-panel auth-panel--loading" role="status">
         Checking account…
       </div>
+    );
+  }
+
+  const handleRecoveredPassword = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setError(null);
+
+    if (password !== confirmation) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setSubmitting(true);
+    const message = await updatePassword(password);
+    setError(message);
+    setSubmitting(false);
+  };
+
+  if (recoveryOnboarding.status === "needs-password") {
+    return (
+      <form
+        className="auth-panel auth-panel--signed-out"
+        onSubmit={(event) => void handleRecoveredPassword(event)}
+      >
+        <div className="auth-panel__intro">
+          <span className="auth-panel__eyebrow">Account recovery</span>
+          <h2>Choose a new password</h2>
+          <p>Set a new password for future sign-ins.</p>
+        </div>
+
+        <div className="auth-panel__form-row">
+          <label className="auth-panel__field">
+            <span>New password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          <label className="auth-panel__field">
+            <span>Confirm new password</span>
+            <input
+              type="password"
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          <div className="auth-panel__actions">
+            <button
+              type="submit"
+              className="auth-panel__button auth-panel__button--primary"
+              disabled={submitting}
+            >
+              Update password
+            </button>
+          </div>
+        </div>
+
+        {error ? (
+          <p className="auth-panel__error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </form>
     );
   }
 
