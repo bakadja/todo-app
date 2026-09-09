@@ -1,0 +1,117 @@
+name: Configure hosted recovery template
+
+on:
+  push:
+    branches:
+      - feat/password-recovery
+    paths:
+      - .github/workflows/configure-hosted-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  configure-hosted-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROJECT_REF: qxactafolezjlpejipqt
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      EXPECTED_SITE_URL: https://tasks.kevinngongang.dev/
+      RECOVERY_SUBJECT: Reset your Todo Pop password
+    steps:
+      - name: Require Supabase management token
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::Repository secret SUPABASE_ACCESS_TOKEN is missing."
+            exit 1
+          fi
+
+      - name: Verify hosted auth policy before update
+        shell: bash
+        run: |
+          set -euo pipefail
+          http_code="$(curl -sS -o /tmp/auth-before.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Supabase Management API GET failed (HTTP ${http_code})."
+            cat /tmp/auth-before.json || true
+            exit 1
+          fi
+
+          site_url="$(jq -r '.site_url // ""' /tmp/auth-before.json)"
+          disable_signup="$(jq -r '.disable_signup // ""' /tmp/auth-before.json)"
+
+          if [ "${site_url%/}" != "${EXPECTED_SITE_URL%/}" ]; then
+            echo "::error::Hosted Site URL does not match the expected Todo Pop production URL."
+            exit 1
+          fi
+          if [ "$disable_signup" != "true" ]; then
+            echo "::error::Public signup is not disabled; refusing to change the recovery template."
+            exit 1
+          fi
+
+          echo "Hosted Site URL verified: ${site_url}"
+          echo "Public signup remains disabled."
+
+      - name: Update hosted recovery template
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg subject "$RECOVERY_SUBJECT" \
+            --arg content '<a href="{{ .SiteURL }}?token_hash={{ .TokenHash }}&type=recovery">\n  Reset password\n</a>' \
+            '{mailer_subjects_recovery: $subject, mailer_templates_recovery_content: $content}' \
+            > /tmp/recovery-patch.json
+
+          http_code="$(curl -sS -o /tmp/auth-patch-response.json -w '%{http_code}' \
+            -X PATCH \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/recovery-patch.json \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Supabase Management API PATCH failed (HTTP ${http_code})."
+            cat /tmp/auth-patch-response.json || true
+            exit 1
+          fi
+
+      - name: Verify hosted recovery template
+        shell: bash
+        run: |
+          set -euo pipefail
+          http_code="$(curl -sS -o /tmp/auth-after.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          if [ "$http_code" != "200" ]; then
+            echo "::error::Supabase Management API verification GET failed (HTTP ${http_code})."
+            cat /tmp/auth-after.json || true
+            exit 1
+          fi
+
+          expected_content='<a href="{{ .SiteURL }}?token_hash={{ .TokenHash }}&type=recovery">\n  Reset password\n</a>'
+          actual_subject="$(jq -r '.mailer_subjects_recovery // ""' /tmp/auth-after.json)"
+          actual_content="$(jq -r '.mailer_templates_recovery_content // ""' /tmp/auth-after.json)"
+          site_url="$(jq -r '.site_url // ""' /tmp/auth-after.json)"
+          disable_signup="$(jq -r '.disable_signup // ""' /tmp/auth-after.json)"
+
+          if [ "$actual_subject" != "$RECOVERY_SUBJECT" ]; then
+            echo "::error::Hosted recovery subject verification failed."
+            exit 1
+          fi
+          if [ "$actual_content" != "$expected_content" ]; then
+            echo "::error::Hosted recovery template body verification failed."
+            exit 1
+          fi
+          if [ "${site_url%/}" != "${EXPECTED_SITE_URL%/}" ] || [ "$disable_signup" != "true" ]; then
+            echo "::error::Hosted auth policy changed unexpectedly during template update."
+            exit 1
+          fi
+
+          echo "Hosted recovery subject verified."
+          echo "Hosted recovery template body verified."
+          echo "Hosted Site URL verified: ${site_url}"
+          echo "Public signup remains disabled."
