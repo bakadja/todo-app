@@ -1,0 +1,95 @@
+name: Fix hosted recovery template
+
+on:
+  push:
+    branches:
+      - feat/password-recovery
+    paths:
+      - .github/workflows/fix-hosted-recovery-template.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fix-hosted-recovery-template:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PROJECT_REF: qxactafolezjlpejipqt
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      EXPECTED_SITE_URL: https://tasks.kevinngongang.dev/
+      RECOVERY_SUBJECT: Reset your Todo Pop password
+    steps:
+      - name: Require Supabase management token
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}" || { echo "::error::Repository secret SUPABASE_ACCESS_TOKEN is missing."; exit 1; }
+
+      - name: Verify hosted auth policy before update
+        shell: bash
+        run: |
+          set -euo pipefail
+          http_code="$(curl -sS -o /tmp/auth-before.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          test "$http_code" = "200" || { echo "::error::Supabase Management API GET failed (HTTP ${http_code})."; exit 1; }
+          site_url="$(jq -r '.site_url // ""' /tmp/auth-before.json)"
+          disable_signup="$(jq -r '.disable_signup // ""' /tmp/auth-before.json)"
+          test "${site_url%/}" = "${EXPECTED_SITE_URL%/}" || { echo "::error::Unexpected Site URL."; exit 1; }
+          test "$disable_signup" = "true" || { echo "::error::Public signup is not disabled."; exit 1; }
+
+      - name: Write exact recovery template
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/recovery.html <<'HTML'
+          <html>
+            <body>
+              <h2>Reset your Todo Pop password</h2>
+              <p>Follow the link below to choose a new password.</p>
+              <p>
+                <a href="{{ .SiteURL }}?token_hash={{ .TokenHash }}&type=recovery">
+                  Reset password
+                </a>
+              </p>
+            </body>
+          </html>
+          HTML
+
+          jq -n \
+            --arg subject "$RECOVERY_SUBJECT" \
+            --rawfile content /tmp/recovery.html \
+            '{mailer_subjects_recovery: $subject, mailer_templates_recovery_content: $content}' \
+            > /tmp/recovery-patch.json
+
+          http_code="$(curl -sS -o /tmp/auth-patch-response.json -w '%{http_code}' \
+            -X PATCH \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            --data-binary @/tmp/recovery-patch.json \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          test "$http_code" = "200" || { echo "::error::Supabase Management API PATCH failed (HTTP ${http_code})."; exit 1; }
+
+      - name: Verify hosted recovery template
+        shell: bash
+        run: |
+          set -euo pipefail
+          http_code="$(curl -sS -o /tmp/auth-after.json -w '%{http_code}' \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            "https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth")"
+          test "$http_code" = "200" || { echo "::error::Verification GET failed (HTTP ${http_code})."; exit 1; }
+
+          actual_subject="$(jq -r '.mailer_subjects_recovery // ""' /tmp/auth-after.json)"
+          jq -r '.mailer_templates_recovery_content // ""' /tmp/auth-after.json > /tmp/actual.html
+          site_url="$(jq -r '.site_url // ""' /tmp/auth-after.json)"
+          disable_signup="$(jq -r '.disable_signup // ""' /tmp/auth-after.json)"
+
+          test "$actual_subject" = "$RECOVERY_SUBJECT" || { echo "::error::Recovery subject mismatch."; exit 1; }
+          diff -u /tmp/recovery.html /tmp/actual.html
+          test "${site_url%/}" = "${EXPECTED_SITE_URL%/}" || { echo "::error::Site URL changed unexpectedly."; exit 1; }
+          test "$disable_signup" = "true" || { echo "::error::Signup policy changed unexpectedly."; exit 1; }
+
+          echo "Hosted recovery template matches repository template exactly."
+          echo "Hosted Site URL verified: ${site_url}"
+          echo "Public signup remains disabled."
