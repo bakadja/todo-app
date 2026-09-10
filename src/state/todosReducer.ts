@@ -1,9 +1,12 @@
+import type { TodoPriority } from "../types/todoPriority";
+
 export type Filter = "all" | "active" | "completed";
 
 export type Todo = {
   id: string;
   title: string;
   completed: boolean;
+  priority: TodoPriority;
   createdAt: number;
 };
 
