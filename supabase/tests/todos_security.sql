@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(11);
 
 select has_table('public', 'todos', 'todos table exists');
 select has_column('public', 'todos', 'priority', 'todos priority column exists');
@@ -125,6 +125,38 @@ select results_eq(
   $$select title from public.todos where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid$$,
   $$values ('Newer'::text)$$,
   'later-arriving older update cannot overwrite canonical row'
+);
+
+select public.sync_todo_lww(
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'Priority newer',
+  true,
+  'high',
+  '2026-09-04 08:00:00+00',
+  '2026-09-04 11:00:00+00',
+  null
+);
+
+select results_eq(
+  $$select priority from public.todos where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid$$,
+  $$values ('high'::text)$$,
+  'priority is stored by the newer LWW update'
+);
+
+select public.sync_todo_lww(
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'Priority older',
+  true,
+  'low',
+  '2026-09-04 08:00:00+00',
+  '2026-09-04 10:30:00+00',
+  null
+);
+
+select results_eq(
+  $$select priority from public.todos where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid$$,
+  $$values ('high'::text)$$,
+  'older priority cannot overwrite the newer canonical todo'
 );
 
 select * from finish();
