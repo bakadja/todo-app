@@ -19,6 +19,7 @@ function toRemote(todo: LocalTodoRecord): RemoteTodoRecord {
     user_id: USER_ID,
     title: todo.title,
     completed: todo.completed,
+    priority: todo.priority,
     created_at: new Date(todo.createdAt).toISOString(),
     updated_at: new Date(todo.updatedAt).toISOString(),
     deleted_at:
@@ -87,6 +88,7 @@ describe("syncTodos", () => {
     expect(result.pushed).toBe(1);
     expect(await repository.get(todo.id)).toMatchObject({
       title: "Pending",
+      priority: null,
       syncStatus: "synced",
       lastSyncError: null,
     });
@@ -132,6 +134,7 @@ describe("syncTodos", () => {
       user_id: USER_ID,
       title: "Remote only",
       completed: false,
+      priority: "low",
       created_at: new Date(1000).toISOString(),
       updated_at: new Date(2000).toISOString(),
       deleted_at: null,
@@ -140,7 +143,10 @@ describe("syncTodos", () => {
     const result = await syncTodos(repository, remote, USER_ID);
 
     expect(result.pulled).toBe(1);
-    expect((await repository.listVisible(OWNER))[0].title).toBe("Remote only");
+    expect((await repository.listVisible(OWNER))[0]).toMatchObject({
+      title: "Remote only",
+      priority: "low",
+    });
   });
 
   it("stores a remote tombstone but hides it from visible todos", async () => {
@@ -150,6 +156,7 @@ describe("syncTodos", () => {
       user_id: USER_ID,
       title: "Deleted remotely",
       completed: false,
+      priority: null,
       created_at: new Date(1000).toISOString(),
       updated_at: new Date(3000).toISOString(),
       deleted_at: new Date(3000).toISOString(),
@@ -192,12 +199,13 @@ describe("syncTodos", () => {
     expect(await db.todos.where("id").equals(todo.id).count()).toBe(1);
   });
 
-  it("stores the newer remote canonical winner after pushing an older local row", async () => {
-    const todo = await repository.add("Older local", OWNER, 1000);
+  it("stores the newer remote canonical winner including priority after pushing an older local row", async () => {
+    const todo = await repository.add("Older local", OWNER, 1000, "low");
     remote.rows.set(todo.id, {
       ...toRemote(todo),
       title: "Newer remote",
       completed: true,
+      priority: "high",
       updated_at: new Date(2000).toISOString(),
     });
 
@@ -206,6 +214,7 @@ describe("syncTodos", () => {
     expect(await repository.get(todo.id)).toMatchObject({
       title: "Newer remote",
       completed: true,
+      priority: "high",
       updatedAt: 2000,
       syncStatus: "synced",
     });
