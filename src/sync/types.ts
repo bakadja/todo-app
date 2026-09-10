@@ -1,10 +1,12 @@
 import type { LocalTodoRecord } from "../storage/todoDb";
+import type { TodoPriority } from "../types/todoPriority";
 
 export type RemoteTodoRecord = {
   id: string;
   user_id: string;
   title: string;
   completed: boolean;
+  priority: TodoPriority;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

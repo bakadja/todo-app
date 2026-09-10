@@ -5,6 +5,7 @@ const todoA: Todo = {
   id: "todo-a",
   title: "First",
   completed: false,
+  priority: "high",
   createdAt: 1000,
 };
 
@@ -12,6 +13,7 @@ const todoB: Todo = {
   id: "todo-b",
   title: "Second",
   completed: true,
+  priority: null,
   createdAt: 2000,
 };
 
@@ -28,7 +30,7 @@ describe("todosReducer", () => {
 
   it("updates an upserted todo that is already present", () => {
     const hydrated = reducer(defaultState, { type: "hydrate", todos: [todoA] });
-    const edited = { ...todoA, title: "Edited" };
+    const edited = { ...todoA, title: "Edited", priority: "medium" as const };
     const next = reducer(hydrated, { type: "upsert", todo: edited });
     expect(next.todos).toEqual([edited]);
   });

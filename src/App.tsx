@@ -15,6 +15,7 @@ import { useTodoAppState } from "./hooks/useTodoAppState";
 import { useTodoSync } from "./hooks/useTodoSync";
 import { selectCounts, selectVisibleTodos } from "./state/selectors";
 import { ownerKeyForUser } from "./storage/todoDb";
+import type { TodoPriority } from "./types/todoPriority";
 import {
   isShareTargetSearch,
   readSharedTodoFromSearch,
@@ -50,14 +51,14 @@ function App() {
   const visibleTodos = selectVisibleTodos(local.state);
   const counts = selectCounts(local.state);
 
-  const handleAdd = async (title: string) => {
-    await local.add(title);
+  const handleAdd = async (title: string, priority: TodoPriority) => {
+    await local.add(title, priority);
     void sync.requestSync();
   };
 
-  const handleSharedAdd = (title: string) => {
+  const handleSharedAdd = (title: string, priority: TodoPriority) => {
     setSharedTodo(null);
-    void handleAdd(title);
+    void handleAdd(title, priority);
   };
 
   const handleToggle = async (id: string) => {
@@ -73,8 +74,12 @@ function App() {
     void sync.requestSync();
   };
 
-  const handleEdit = async (id: string, title: string) => {
-    await local.edit(id, title);
+  const handleEdit = async (
+    id: string,
+    title: string,
+    priority: TodoPriority,
+  ) => {
+    await local.edit(id, title, priority);
     void sync.requestSync();
   };
 
@@ -93,7 +98,7 @@ function App() {
               onCancel={() => setSharedTodo(null)}
             />
           ) : null}
-          <TodoInput onAdd={(title) => void handleAdd(title)} />
+          <TodoInput onAdd={(title, priority) => void handleAdd(title, priority)} />
           <Filters
             filter={local.state.filter}
             counts={counts}
@@ -106,7 +111,9 @@ function App() {
               todos={visibleTodos}
               onToggle={(id) => void handleToggle(id)}
               onRemove={setDeleteTodoId}
-              onEdit={(id, title) => void handleEdit(id, title)}
+              onEdit={(id, title, priority) =>
+                void handleEdit(id, title, priority)
+              }
             />
           )}
         </section>

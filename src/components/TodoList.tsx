@@ -1,11 +1,12 @@
 import type { Todo } from "../state/todosReducer";
+import type { TodoPriority } from "../types/todoPriority";
 import { TodoItem } from "./TodoItem";
 
 type TodoListProps = {
   todos: Todo[];
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
-  onEdit: (id: string, title: string) => void;
+  onEdit: (id: string, title: string, priority: TodoPriority) => void;
 };
 
 export function TodoList({ todos, onToggle, onRemove, onEdit }: TodoListProps) {

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import type { TodoPriority } from "../types/todoPriority";
+import { PrioritySelect } from "./PrioritySelect";
 import "./SharedTodoCard.css";
 
 type SharedTodoCardProps = {
   initialValue: string;
-  onAdd: (value: string) => void;
+  onAdd: (value: string, priority: TodoPriority) => void;
   onCancel: () => void;
 };
 
@@ -13,6 +15,7 @@ export function SharedTodoCard({
   onCancel,
 }: SharedTodoCardProps) {
   const [value, setValue] = useState(initialValue);
+  const [priority, setPriority] = useState<TodoPriority>(null);
   const trimmed = value.trim();
 
   return (
@@ -34,6 +37,12 @@ export function SharedTodoCard({
         />
       </label>
 
+      <PrioritySelect
+        value={priority}
+        onChange={setPriority}
+        ariaLabel="Shared todo priority"
+      />
+
       <div className="shared-todo__actions">
         <button
           type="button"
@@ -46,7 +55,7 @@ export function SharedTodoCard({
         <button
           type="button"
           className="shared-todo__button shared-todo__button--primary"
-          onClick={() => trimmed && onAdd(trimmed)}
+          onClick={() => trimmed && onAdd(trimmed, priority)}
           disabled={!trimmed}
           aria-label="Add shared todo"
         >

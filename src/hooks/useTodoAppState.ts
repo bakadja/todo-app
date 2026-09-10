@@ -20,11 +20,13 @@ import {
   localTodoRepository,
   type LocalTodoRepository,
 } from "../storage/todoRepository";
+import type { TodoPriority } from "../types/todoPriority";
 
 const toUiTodo = (row: LocalTodoRecord): Todo => ({
   id: row.id,
   title: row.title,
   completed: row.completed,
+  priority: row.priority,
   createdAt: row.createdAt,
 });
 
@@ -67,8 +69,8 @@ export function useTodoAppState(
   }, [db, ownerKey, repository]);
 
   const add = useCallback(
-    async (title: string) => {
-      const row = await repository.add(title, ownerKey);
+    async (title: string, priority: TodoPriority = null) => {
+      const row = await repository.add(title, ownerKey, Date.now(), priority);
       dispatch({ type: "upsert", todo: toUiTodo(row) });
     },
     [ownerKey, repository],
@@ -83,8 +85,14 @@ export function useTodoAppState(
   );
 
   const edit = useCallback(
-    async (id: string, title: string) => {
-      const row = await repository.edit(id, ownerKey, title);
+    async (id: string, title: string, priority?: TodoPriority) => {
+      const row = await repository.edit(
+        id,
+        ownerKey,
+        title,
+        Date.now(),
+        priority,
+      );
       dispatch({ type: "upsert", todo: toUiTodo(row) });
     },
     [ownerKey, repository],

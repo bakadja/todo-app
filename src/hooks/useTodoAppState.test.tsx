@@ -26,7 +26,7 @@ describe("useTodoAppState", () => {
     localStorage.clear();
   });
 
-  it("hydrates a legacy todo after migration", async () => {
+  it("hydrates a legacy todo after migration with no priority", async () => {
     localStorage.setItem(
       "todos_app_v1",
       JSON.stringify({
@@ -52,6 +52,7 @@ describe("useTodoAppState", () => {
         id: "legacy-1",
         title: "Existing task",
         completed: true,
+        priority: null,
         createdAt: 1234,
       },
     ]);
@@ -79,7 +80,28 @@ describe("useTodoAppState", () => {
       id,
       title: "Persist me",
       completed: false,
+      priority: null,
     });
+  });
+
+  it("persists priority through add and edit", async () => {
+    const { result } = renderHook(() =>
+      useTodoAppState("anonymous", repository, db),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.add("Priority task", "medium");
+    });
+    const id = result.current.state.todos[0].id;
+    expect(result.current.state.todos[0].priority).toBe("medium");
+
+    await act(async () => {
+      await result.current.edit(id, "Priority task", "high");
+    });
+
+    expect((await repository.get(id))?.priority).toBe("high");
+    expect(result.current.state.todos[0].priority).toBe("high");
   });
 
   it("persists toggle and edit changes", async () => {
@@ -101,11 +123,13 @@ describe("useTodoAppState", () => {
     expect(await repository.get(id)).toMatchObject({
       title: "After",
       completed: true,
+      priority: null,
       syncStatus: "pending",
     });
     expect(result.current.state.todos[0]).toMatchObject({
       title: "After",
       completed: true,
+      priority: null,
     });
   });
 

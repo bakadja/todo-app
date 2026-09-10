@@ -22,9 +22,11 @@ function toRemote(todo: LocalTodoRecord): RemoteTodoRecord {
     user_id: USER_ID,
     title: todo.title,
     completed: todo.completed,
+    priority: todo.priority,
     created_at: new Date(todo.createdAt).toISOString(),
     updated_at: new Date(todo.updatedAt).toISOString(),
-    deleted_at: todo.deletedAt === null ? null : new Date(todo.deletedAt).toISOString(),
+    deleted_at:
+      todo.deletedAt === null ? null : new Date(todo.deletedAt).toISOString(),
   };
 }
 
@@ -35,7 +37,10 @@ class InMemoryLwwRemote implements TodoRemote {
     const incoming = toRemote(todo);
     const existing = this.rows.get(incoming.id);
 
-    if (!existing || Date.parse(incoming.updated_at) >= Date.parse(existing.updated_at)) {
+    if (
+      !existing ||
+      Date.parse(incoming.updated_at) >= Date.parse(existing.updated_at)
+    ) {
       this.rows.set(incoming.id, incoming);
     }
 
@@ -71,18 +76,33 @@ describe("offline multi-device synchronization", () => {
     await dbB.delete();
   });
 
-  it("converges two offline devices on the newest edit and propagates a tombstone without duplicating the todo", async () => {
+  it("converges two offline devices on the newest edit and priority, then propagates a tombstone without duplicating the todo", async () => {
     const ownerKey = ownerKeyForUser(USER_ID);
 
-    const createdOnA = await repoA.add("X at 10", ownerKey, AT_10);
+    const createdOnA = await repoA.add("X at 10", ownerKey, AT_10, "low");
     await syncTodos(repoA, remote, USER_ID);
 
     await syncTodos(repoB, remote, USER_ID);
     expect(await repoB.listVisible(ownerKey)).toHaveLength(1);
-    expect((await repoB.listVisible(ownerKey))[0].id).toBe(createdOnA.id);
+    expect((await repoB.listVisible(ownerKey))[0]).toMatchObject({
+      id: createdOnA.id,
+      priority: "low",
+    });
 
-    await repoA.edit(createdOnA.id, ownerKey, "A edit at 11", AT_11);
-    await repoB.edit(createdOnA.id, ownerKey, "B edit at 12", AT_12);
+    await repoA.edit(
+      createdOnA.id,
+      ownerKey,
+      "A edit at 11",
+      AT_11,
+      "medium",
+    );
+    await repoB.edit(
+      createdOnA.id,
+      ownerKey,
+      "B edit at 12",
+      AT_12,
+      "high",
+    );
 
     await syncTodos(repoB, remote, USER_ID);
     await syncTodos(repoA, remote, USER_ID);
@@ -93,8 +113,16 @@ describe("offline multi-device synchronization", () => {
 
     expect(visibleA).toHaveLength(1);
     expect(visibleB).toHaveLength(1);
-    expect(visibleA[0]).toMatchObject({ id: createdOnA.id, title: "B edit at 12" });
-    expect(visibleB[0]).toMatchObject({ id: createdOnA.id, title: "B edit at 12" });
+    expect(visibleA[0]).toMatchObject({
+      id: createdOnA.id,
+      title: "B edit at 12",
+      priority: "high",
+    });
+    expect(visibleB[0]).toMatchObject({
+      id: createdOnA.id,
+      title: "B edit at 12",
+      priority: "high",
+    });
     expect(await dbA.todos.count()).toBe(1);
     expect(await dbB.todos.count()).toBe(1);
 

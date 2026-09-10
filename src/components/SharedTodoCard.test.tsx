@@ -22,7 +22,7 @@ describe("SharedTodoCard", () => {
     );
   });
 
-  it("sends the edited trimmed value to onAdd", () => {
+  it("sends the edited trimmed value with selected priority to onAdd", () => {
     const onAdd = vi.fn();
     render(
       <SharedTodoCard
@@ -35,9 +35,27 @@ describe("SharedTodoCard", () => {
     fireEvent.change(screen.getByLabelText("Shared todo content"), {
       target: { value: "  Read Guide later  " },
     });
+    fireEvent.change(screen.getByLabelText("Shared todo priority"), {
+      target: { value: "medium" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add shared todo" }));
 
-    expect(onAdd).toHaveBeenCalledWith("Read Guide later");
+    expect(onAdd).toHaveBeenCalledWith("Read Guide later", "medium");
+  });
+
+  it("uses no priority by default", () => {
+    const onAdd = vi.fn();
+    render(
+      <SharedTodoCard
+        initialValue="Guide"
+        onAdd={onAdd}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add shared todo" }));
+
+    expect(onAdd).toHaveBeenCalledWith("Guide", null);
   });
 
   it("cancels without adding", () => {
