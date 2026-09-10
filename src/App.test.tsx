@@ -56,12 +56,14 @@ const deleteTodos = [
     id: "todo-a",
     title: "Todo A",
     completed: false,
+    priority: null,
     createdAt: 2000,
   },
   {
     id: "todo-b",
     title: "Todo B",
     completed: false,
+    priority: null,
     createdAt: 1000,
   },
 ];
@@ -114,6 +116,23 @@ describe("App invite onboarding", () => {
   });
 });
 
+describe("App priority", () => {
+  it("adds a normal todo with the selected priority and requests sync", async () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Add a task" }), {
+      target: { value: "Prepare interview" },
+    });
+    fireEvent.change(screen.getByLabelText("New todo priority"), {
+      target: { value: "high" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(add).toHaveBeenCalledWith("Prepare interview", "high"));
+    await waitFor(() => expect(requestSync).toHaveBeenCalledTimes(1));
+  });
+});
+
 describe("App share target", () => {
   it("shows a namespaced share and consumes only its query params", () => {
     window.history.replaceState(
@@ -151,17 +170,20 @@ describe("App share target", () => {
     expect(screen.queryByLabelText("Shared todo content")).toBeNull();
   });
 
-  it("adds shared text through existing add and sync handlers", async () => {
+  it("adds shared text with priority through existing add and sync handlers", async () => {
     window.history.replaceState({}, "", "/?share_title=Guide");
 
     render(<App />);
     fireEvent.change(screen.getByLabelText("Shared todo content"), {
       target: { value: "Read Guide tonight" },
     });
+    fireEvent.change(screen.getByLabelText("Shared todo priority"), {
+      target: { value: "medium" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add shared todo" }));
 
     expect(screen.queryByLabelText("Shared todo content")).toBeNull();
-    await waitFor(() => expect(add).toHaveBeenCalledWith("Read Guide tonight"));
+    await waitFor(() => expect(add).toHaveBeenCalledWith("Read Guide tonight", "medium"));
     await waitFor(() => expect(requestSync).toHaveBeenCalledTimes(1));
   });
 
