@@ -1,3 +1,4 @@
+import type { TodoPriority } from "../types/todoPriority";
 import {
   todoDb,
   type LocalTodoRecord,
@@ -37,12 +38,14 @@ export class LocalTodoRepository {
     title: string,
     ownerKey: OwnerKey,
     now = Date.now(),
+    priority: TodoPriority = null,
   ): Promise<LocalTodoRecord> {
     const row: LocalTodoRecord = {
       id: crypto.randomUUID(),
       ownerKey,
       title,
       completed: false,
+      priority,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -59,11 +62,13 @@ export class LocalTodoRepository {
     ownerKey: OwnerKey,
     title: string,
     now = Date.now(),
+    priority?: TodoPriority,
   ): Promise<LocalTodoRecord> {
     const row = await this.requireForOwner(id, ownerKey);
     const next: LocalTodoRecord = {
       ...row,
       title,
+      priority: priority === undefined ? row.priority : priority,
       updatedAt: now,
       syncStatus: "pending",
       lastSyncError: null,
