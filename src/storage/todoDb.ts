@@ -1,4 +1,5 @@
 import Dexie, { type Table } from "dexie";
+import type { TodoPriority } from "../types/todoPriority";
 
 export type OwnerKey = "anonymous" | `user:${string}`;
 export type SyncStatus = "pending" | "syncing" | "synced" | "error";
@@ -8,6 +9,7 @@ export type LocalTodoRecord = {
   ownerKey: OwnerKey;
   title: string;
   completed: boolean;
+  priority: TodoPriority;
   createdAt: number;
   updatedAt: number;
   deletedAt: number | null;
@@ -20,16 +22,33 @@ export type MetaRecord = {
   value: string;
 };
 
+const todoStores = {
+  todos: "id, ownerKey, syncStatus, updatedAt, deletedAt",
+  meta: "key",
+};
+
 export class TodoDb extends Dexie {
   todos!: Table<LocalTodoRecord, string>;
   meta!: Table<MetaRecord, string>;
 
   constructor(name = "todo-pop") {
     super(name);
-    this.version(1).stores({
-      todos: "id, ownerKey, syncStatus, updatedAt, deletedAt",
-      meta: "key",
-    });
+    this.version(1).stores(todoStores);
+    this.version(2)
+      .stores(todoStores)
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<LocalTodoRecord, string>("todos")
+          .toCollection()
+          .modify((todo) => {
+            const legacyTodo = todo as LocalTodoRecord & {
+              priority?: TodoPriority;
+            };
+            if (legacyTodo.priority === undefined) {
+              legacyTodo.priority = null;
+            }
+          });
+      });
   }
 }
 
