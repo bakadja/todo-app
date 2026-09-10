@@ -2,9 +2,16 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(7);
+select plan(9);
 
 select has_table('public', 'todos', 'todos table exists');
+select has_column('public', 'todos', 'priority', 'todos priority column exists');
+select has_function(
+  'public',
+  'sync_todo_lww',
+  array['uuid', 'text', 'boolean', 'text', 'timestamptz', 'timestamptz', 'timestamptz'],
+  'sync_todo_lww accepts priority'
+);
 
 insert into auth.users (id, email)
 values
