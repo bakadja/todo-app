@@ -5,17 +5,19 @@ import type { LocalTodoRecord, TodoDb } from "./todoDb";
 const LEGACY_KEY = "todos_app_v1";
 const MIGRATION_MARKER = "legacy-todos-app-v1-migrated";
 
+type LegacyTodo = Omit<Todo, "priority">;
+
 interface LegacyState {
-  todos: Todo[];
+  todos: LegacyTodo[];
   filter: Filter;
 }
 
 const isFilter = (value: unknown): value is Filter =>
   value === "all" || value === "active" || value === "completed";
 
-const isLegacyTodo = (value: unknown): value is Todo => {
+const isLegacyTodo = (value: unknown): value is LegacyTodo => {
   if (!value || typeof value !== "object") return false;
-  const todo = value as Partial<Todo>;
+  const todo = value as Partial<LegacyTodo>;
   return (
     typeof todo.id === "string" &&
     todo.id.length > 0 &&
@@ -63,6 +65,7 @@ export async function migrateLegacyState(
       ownerKey: "anonymous",
       title: todo.title,
       completed: todo.completed,
+      priority: null,
       createdAt: todo.createdAt,
       updatedAt: now,
       deletedAt: null,
