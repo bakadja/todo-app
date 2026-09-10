@@ -5,7 +5,7 @@ import type { RemoteTodoRecord, TodoRemote } from "./types";
 export type { RemoteTodoRecord } from "./types";
 
 const TODO_COLUMNS =
-  "id,user_id,title,completed,created_at,updated_at,deleted_at";
+  "id,user_id,title,completed,priority,created_at,updated_at,deleted_at";
 
 export function remoteToLocal(
   row: RemoteTodoRecord,
@@ -16,6 +16,7 @@ export function remoteToLocal(
     ownerKey,
     title: row.title,
     completed: row.completed,
+    priority: row.priority,
     createdAt: Date.parse(row.created_at),
     updatedAt: Date.parse(row.updated_at),
     deletedAt: row.deleted_at ? Date.parse(row.deleted_at) : null,
@@ -37,6 +38,7 @@ export class SupabaseTodoRemote implements TodoRemote {
         p_id: todo.id,
         p_title: todo.title,
         p_completed: todo.completed,
+        p_priority: todo.priority,
         p_created_at: new Date(todo.createdAt).toISOString(),
         p_updated_at: new Date(todo.updatedAt).toISOString(),
         p_deleted_at:
