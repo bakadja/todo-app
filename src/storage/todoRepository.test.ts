@@ -17,18 +17,53 @@ describe("LocalTodoRepository", () => {
     await db.delete();
   });
 
-  it("creates a durable anonymous pending todo", async () => {
+  it("creates a durable anonymous pending todo without priority", async () => {
     const row = await repo.add("Write tests", "anonymous", 1000);
     expect(row).toMatchObject({
       title: "Write tests",
       ownerKey: "anonymous",
       completed: false,
+      priority: null,
       createdAt: 1000,
       updatedAt: 1000,
       deletedAt: null,
       syncStatus: "pending",
     });
     expect((await repo.listVisible("anonymous"))[0].id).toBe(row.id);
+  });
+
+  it("stores and edits todo priority while marking the row pending", async () => {
+    const row = await repo.add("Prioritize me", "anonymous", 1000, "medium");
+    expect(row.priority).toBe("medium");
+
+    const edited = await repo.edit(
+      row.id,
+      "anonymous",
+      "Prioritize me",
+      2000,
+      "high",
+    );
+
+    expect(edited).toMatchObject({
+      title: "Prioritize me",
+      priority: "high",
+      updatedAt: 2000,
+      syncStatus: "pending",
+      lastSyncError: null,
+    });
+  });
+
+  it("can remove an existing priority", async () => {
+    const row = await repo.add("Prioritize me", "anonymous", 1000, "high");
+    const edited = await repo.edit(
+      row.id,
+      "anonymous",
+      "Prioritize me",
+      2000,
+      null,
+    );
+
+    expect(edited.priority).toBeNull();
   });
 
   it("keeps delete tombstones", async () => {
