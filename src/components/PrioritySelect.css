@@ -1,0 +1,47 @@
+.priority-select {
+  display: grid;
+  gap: 5px;
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
+.priority-select > span {
+  color: #555564;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.priority-select select {
+  min-height: 42px;
+  padding: 9px 34px 9px 12px;
+  border: 1px solid rgba(27, 27, 31, 0.12);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+}
+
+.priority-select select:focus {
+  outline: none;
+  border-color: rgba(255, 95, 138, 0.65);
+  box-shadow: 0 0 0 3px rgba(255, 95, 138, 0.12);
+}
+
+.shared-todo .priority-select {
+  max-width: 180px;
+}
+
+@media (max-width: 640px) {
+  .todo-input .priority-select,
+  .shared-todo .priority-select,
+  .todo-item__edit .priority-select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .priority-select select {
+    width: 100%;
+    min-height: 48px;
+  }
+}
