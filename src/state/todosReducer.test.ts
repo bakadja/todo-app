@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultState, reducer, type Todo } from "./todosReducer";
+import { defaultState, reducer, type State, type Todo } from "./todosReducer";
 
 const todoA: Todo = {
   id: "todo-a",
@@ -44,5 +44,21 @@ describe("todosReducer", () => {
   it("changes the local filter", () => {
     const next = reducer(defaultState, { type: "setFilter", filter: "completed" });
     expect(next.filter).toBe("completed");
+  });
+
+  it("defaults the priority filter to all", () => {
+    expect((defaultState as State & { priorityFilter?: string }).priorityFilter).toBe(
+      "all",
+    );
+  });
+
+  it("changes the local priority filter", () => {
+    const next = reducer(
+      defaultState,
+      { type: "setPriorityFilter", priorityFilter: "high" } as never,
+    );
+    expect((next as State & { priorityFilter?: string }).priorityFilter).toBe(
+      "high",
+    );
   });
 });
