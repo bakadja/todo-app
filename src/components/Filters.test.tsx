@@ -8,17 +8,14 @@ describe("Filters", () => {
   it("renders separate status and priority filter groups", () => {
     const onChange = vi.fn();
     const onPriorityChange = vi.fn();
-    const priorityProps = {
-      priorityFilter: "all",
-      onPriorityChange,
-    } as Record<string, unknown>;
 
     render(
       <Filters
         filter="all"
+        priorityFilter="all"
         counts={{ all: 4, active: 2, completed: 2 }}
         onChange={onChange}
-        {...priorityProps}
+        onPriorityChange={onPriorityChange}
       />,
     );
 
@@ -40,17 +37,14 @@ describe("Filters", () => {
   it("changes priority without changing the status filter", () => {
     const onChange = vi.fn();
     const onPriorityChange = vi.fn();
-    const priorityProps = {
-      priorityFilter: "all",
-      onPriorityChange,
-    } as Record<string, unknown>;
 
     render(
       <Filters
         filter="active"
+        priorityFilter="all"
         counts={{ all: 4, active: 2, completed: 2 }}
         onChange={onChange}
-        {...priorityProps}
+        onPriorityChange={onPriorityChange}
       />,
     );
 
