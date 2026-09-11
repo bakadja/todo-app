@@ -3,11 +3,14 @@ import {
   defaultState,
   reducer,
   type Filter,
+  type PriorityFilter,
   type Todo,
 } from "../state/todosReducer";
 import {
   loadFilterPreference,
+  loadPriorityFilterPreference,
   saveFilterPreference,
+  savePriorityFilterPreference,
 } from "../storage/filterPreference";
 import { migrateLegacyState } from "../storage/migrateLegacyState";
 import {
@@ -52,11 +55,13 @@ export function useTodoAppState(
         await repository.claimAnonymous(ownerKey);
       }
       const filter = loadFilterPreference();
+      const priorityFilter = loadPriorityFilterPreference();
       const rows = await repository.listVisible(ownerKey);
 
       if (cancelled) return;
 
       dispatch({ type: "setFilter", filter });
+      dispatch({ type: "setPriorityFilter", priorityFilter });
       dispatch({ type: "hydrate", todos: rows.map(toUiTodo) });
       setLoadedOwnerKey(ownerKey);
     };
@@ -111,6 +116,11 @@ export function useTodoAppState(
     dispatch({ type: "setFilter", filter });
   }, []);
 
+  const setPriorityFilter = useCallback((priorityFilter: PriorityFilter) => {
+    savePriorityFilterPreference(priorityFilter);
+    dispatch({ type: "setPriorityFilter", priorityFilter });
+  }, []);
+
   return {
     state,
     loading: loadedOwnerKey !== ownerKey,
@@ -119,6 +129,7 @@ export function useTodoAppState(
     edit,
     remove,
     setFilter,
+    setPriorityFilter,
     refresh,
   };
 }
