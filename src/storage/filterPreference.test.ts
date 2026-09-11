@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   loadFilterPreference,
+  loadPriorityFilterPreference,
   saveFilterPreference,
+  savePriorityFilterPreference,
 } from "./filterPreference";
 
 type MockStorage = Storage & { _data: Map<string, string> };
@@ -44,5 +46,15 @@ describe("filterPreference", () => {
   it("falls back to all when no valid preference exists", () => {
     localStorage.setItem("todos_app_filter_v1", "unexpected");
     expect(loadFilterPreference()).toBe("all");
+  });
+
+  it("stores and reloads a valid priority filter", () => {
+    savePriorityFilterPreference("low");
+    expect(loadPriorityFilterPreference()).toBe("low");
+  });
+
+  it("falls back to all when no valid priority preference exists", () => {
+    localStorage.setItem("todos_app_priority_filter_v1", "urgent");
+    expect(loadPriorityFilterPreference()).toBe("all");
   });
 });
