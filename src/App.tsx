@@ -101,8 +101,10 @@ function App() {
           <TodoInput onAdd={(title, priority) => void handleAdd(title, priority)} />
           <Filters
             filter={local.state.filter}
+            priorityFilter={local.state.priorityFilter}
             counts={counts}
             onChange={local.setFilter}
+            onPriorityChange={local.setPriorityFilter}
           />
           {visibleTodos.length === 0 ? (
             <EmptyState />

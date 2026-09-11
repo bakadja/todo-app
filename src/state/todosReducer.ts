@@ -1,6 +1,7 @@
 import type { TodoPriority } from "../types/todoPriority";
 
 export type Filter = "all" | "active" | "completed";
+export type PriorityFilter = "all" | "high" | "medium" | "low" | "none";
 
 export type Todo = {
   id: string;
@@ -13,15 +14,21 @@ export type Todo = {
 export type State = {
   todos: Todo[];
   filter: Filter;
+  priorityFilter: PriorityFilter;
 };
 
 export type Action =
   | { type: "hydrate"; todos: Todo[] }
   | { type: "upsert"; todo: Todo }
   | { type: "remove"; id: string }
-  | { type: "setFilter"; filter: Filter };
+  | { type: "setFilter"; filter: Filter }
+  | { type: "setPriorityFilter"; priorityFilter: PriorityFilter };
 
-export const defaultState: State = { todos: [], filter: "all" };
+export const defaultState: State = {
+  todos: [],
+  filter: "all",
+  priorityFilter: "all",
+};
 
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -45,6 +52,8 @@ export function reducer(state: State, action: Action): State {
       };
     case "setFilter":
       return { ...state, filter: action.filter };
+    case "setPriorityFilter":
+      return { ...state, priorityFilter: action.priorityFilter };
     default:
       return state;
   }

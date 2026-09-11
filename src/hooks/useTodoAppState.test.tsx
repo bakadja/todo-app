@@ -171,6 +171,37 @@ describe("useTodoAppState", () => {
     expect(second.result.current.state.filter).toBe("completed");
   });
 
+  it("keeps priority filter preference across remount", async () => {
+    const first = renderHook(() =>
+      useTodoAppState("anonymous", repository, db),
+    );
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+
+    const firstCurrent = first.result.current as typeof first.result.current & {
+      setPriorityFilter?: (filter: "high") => void;
+    };
+    expect(firstCurrent.setPriorityFilter).toBeTypeOf("function");
+    if (!firstCurrent.setPriorityFilter) return;
+
+    act(() => {
+      firstCurrent.setPriorityFilter?.("high");
+    });
+    first.unmount();
+
+    const second = renderHook(() =>
+      useTodoAppState("anonymous", repository, db),
+    );
+    await waitFor(() => expect(second.result.current.loading).toBe(false));
+
+    expect(
+      (
+        second.result.current.state as typeof second.result.current.state & {
+          priorityFilter?: string;
+        }
+      ).priorityFilter,
+    ).toBe("high");
+  });
+
   it("claims anonymous todos when the owner changes to an authenticated user", async () => {
     const userOwner = ownerKeyForUser("11111111-1111-1111-1111-111111111111");
     const anonymous = await repository.add("Anonymous task", "anonymous", 1000);

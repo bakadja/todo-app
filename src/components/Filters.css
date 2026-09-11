@@ -1,0 +1,37 @@
+.filters-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.filters-panel .filters {
+  margin-bottom: 0;
+}
+
+.filters--priority button {
+  background: #fff7e8;
+  color: #76521e;
+}
+
+.filters--priority button.is-active {
+  background: var(--secondary);
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .filters-panel .filters--priority {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .filters-panel .filters--priority button:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .filters-panel .filters--priority button {
+    justify-content: center;
+    min-width: 0;
+    min-height: 40px;
+  }
+}
