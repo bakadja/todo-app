@@ -37,8 +37,9 @@ changes that have not yet been merged to `master`.
 
 ## Automated checks
 
-- **Secret scanning**: gitleaks over the full git history on every push and
-  pull request, plus a weekly scheduled scan.
+- **Secret scanning**: gitleaks scans the pushed/PR commit range on every
+  push and pull request, and the full git history in a weekly scheduled
+  scan.
 - **Dependency audit**: `npm audit --audit-level=high` over all dependencies
   (runtime and dev) on every push and pull request, and weekly.
 - **Dependabot**: weekly update proposals for npm packages and GitHub Actions,

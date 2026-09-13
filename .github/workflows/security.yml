@@ -16,10 +16,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: security-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   secret-scan:
     runs-on: ubuntu-latest
@@ -35,6 +31,9 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Findings fail the job via the gitleaks exit code; PR comments on
+          # leaks are suppressed so least-privilege GITHUB_TOKEN never 403s.
+          GITLEAKS_ENABLE_COMMENTS: "false"
 
   dependency-audit:
     runs-on: ubuntu-latest
