@@ -16,6 +16,20 @@ const todo = {
 afterEach(cleanup);
 
 describe("TodoItem", () => {
+  it("bounds the edit textarea to the maximum todo title length", () => {
+    render(
+      <TodoItem
+        todo={{ id: "t1", title: "Task", completed: false, priority: null, createdAt: 1000 }}
+        onToggle={vi.fn()}
+        onRemove={vi.fn()}
+        onEdit={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    const editor = screen.getByLabelText("Edit todo") as HTMLTextAreaElement;
+    expect(editor.maxLength).toBe(200);
+  });
+
   it("uses a multiline editor for long todo titles", () => {
     render(
       <TodoItem

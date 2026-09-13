@@ -1,4 +1,5 @@
 import type { TodoPriority } from "../types/todoPriority";
+import { isValidTodoTitle } from "../types/todoTitle";
 import {
   todoDb,
   type LocalTodoRecord,
@@ -10,6 +11,14 @@ const isRetryable = (row: LocalTodoRecord) =>
   row.syncStatus === "pending" ||
   row.syncStatus === "syncing" ||
   row.syncStatus === "error";
+
+const assertValidTitle = (title: string) => {
+  // Mirrors the database constraint; oversized input must fail predictably
+  // instead of being truncated or rejected only at sync time.
+  if (!isValidTodoTitle(title)) {
+    throw new Error("Todo title must be between 1 and 200 characters");
+  }
+};
 
 export class LocalTodoRepository {
   private readonly db: TodoDb;
@@ -40,6 +49,7 @@ export class LocalTodoRepository {
     now = Date.now(),
     priority: TodoPriority = null,
   ): Promise<LocalTodoRecord> {
+    assertValidTitle(title);
     const row: LocalTodoRecord = {
       id: crypto.randomUUID(),
       ownerKey,
@@ -64,6 +74,7 @@ export class LocalTodoRepository {
     now = Date.now(),
     priority?: TodoPriority,
   ): Promise<LocalTodoRecord> {
+    assertValidTitle(title);
     const row = await this.requireForOwner(id, ownerKey);
     const next: LocalTodoRecord = {
       ...row,

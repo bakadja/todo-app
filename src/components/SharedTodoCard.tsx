@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TodoPriority } from "../types/todoPriority";
+import { MAX_TODO_TITLE_LENGTH } from "../types/todoTitle";
 import { PrioritySelect } from "./PrioritySelect";
 import "./SharedTodoCard.css";
 
@@ -17,6 +18,9 @@ export function SharedTodoCard({
   const [value, setValue] = useState(initialValue);
   const [priority, setPriority] = useState<TodoPriority>(null);
   const trimmed = value.trim();
+  // Shared content arrives pre-filled, so it can exceed the limit; report it
+  // instead of truncating, and let the user shorten it themselves.
+  const tooLong = trimmed.length > MAX_TODO_TITLE_LENGTH;
 
   return (
     <section className="shared-todo" aria-labelledby="shared-todo-title">
@@ -37,6 +41,13 @@ export function SharedTodoCard({
         />
       </label>
 
+      {tooLong ? (
+        <p className="shared-todo__error" role="alert">
+          Shared todo content is too long ({trimmed.length} characters; the
+          maximum is {MAX_TODO_TITLE_LENGTH}). Shorten it before adding.
+        </p>
+      ) : null}
+
       <PrioritySelect
         value={priority}
         onChange={setPriority}
@@ -55,8 +66,8 @@ export function SharedTodoCard({
         <button
           type="button"
           className="shared-todo__button shared-todo__button--primary"
-          onClick={() => trimmed && onAdd(trimmed, priority)}
-          disabled={!trimmed}
+          onClick={() => trimmed && !tooLong && onAdd(trimmed, priority)}
+          disabled={!trimmed || tooLong}
           aria-label="Add shared todo"
         >
           Add

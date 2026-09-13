@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TodoPriority } from "../types/todoPriority";
+import { MAX_TODO_TITLE_LENGTH } from "../types/todoTitle";
 import { PrioritySelect } from "./PrioritySelect";
 
 type TodoInputProps = {
@@ -22,6 +23,7 @@ export function TodoInput({ onAdd }: TodoInputProps) {
     <div className="todo-input">
       <input
         value={title}
+        maxLength={MAX_TODO_TITLE_LENGTH}
         onChange={(event) => setTitle(event.target.value)}
         onKeyDown={(event) => event.key === "Enter" && submit()}
         placeholder="Add a task"

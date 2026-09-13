@@ -3,6 +3,7 @@ import "./TodoItem.css";
 import type { Todo } from "../state/todosReducer";
 import type { TodoPriority } from "../types/todoPriority";
 import { todoPriorityLabel } from "../types/todoPriority";
+import { MAX_TODO_TITLE_LENGTH } from "../types/todoTitle";
 import { PrioritySelect } from "./PrioritySelect";
 
 type TodoItemProps = {
@@ -48,6 +49,7 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
           <textarea
             value={draft}
             rows={3}
+            maxLength={MAX_TODO_TITLE_LENGTH}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") commit();

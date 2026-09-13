@@ -5,6 +5,27 @@ import { SharedTodoCard } from "./SharedTodoCard";
 afterEach(cleanup);
 
 describe("SharedTodoCard", () => {
+  it("blocks adding oversized shared content and reports it instead of truncating", () => {
+    const onAdd = vi.fn();
+    render(
+      <SharedTodoCard
+        initialValue={"x".repeat(250)}
+        onAdd={onAdd}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/too long/)).toBeTruthy();
+    const add = screen.getByRole("button", { name: "Add shared todo" });
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Shared todo content"), {
+      target: { value: "x".repeat(200) },
+    });
+    expect(screen.queryByText(/too long/)).toBeNull();
+    expect((screen.getByRole("button", { name: "Add shared todo" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("renders shared content in one editable textarea", () => {
     render(
       <SharedTodoCard
