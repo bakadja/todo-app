@@ -31,6 +31,7 @@ select public.sync_todo_lww(
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'Initial',
   false,
+  null,
   '2026-09-04 08:00:00+00',
   '2026-09-04 08:00:00+00',
   null
@@ -86,6 +87,7 @@ select public.sync_todo_lww(
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'Initial retry',
   false,
+  null,
   '2026-09-04 08:00:00+00',
   '2026-09-04 08:00:00+00',
   null
@@ -101,6 +103,7 @@ select public.sync_todo_lww(
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'Newer',
   true,
+  null,
   '2026-09-04 08:00:00+00',
   '2026-09-04 10:00:00+00',
   null
@@ -116,6 +119,7 @@ select public.sync_todo_lww(
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'Older',
   false,
+  null,
   '2026-09-04 08:00:00+00',
   '2026-09-04 09:00:00+00',
   null

@@ -80,4 +80,47 @@ describe("SupabaseTodoRemote", () => {
       lastSyncError: null,
     });
   });
+
+  it("rejects a canonical push response that fails runtime validation", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: { ...remoteRow, updated_at: "not-a-date" },
+      error: null,
+    });
+    const rpc = vi.fn().mockReturnValue({ single });
+    const client = { rpc } as unknown as SupabaseClient;
+    const remote = new SupabaseTodoRemote(client);
+
+    await expect(remote.push(localRow)).rejects.toThrow(
+      /invalid canonical todo/,
+    );
+  });
+
+  it("rejects malformed rows from the pull response instead of storing them", async () => {
+    const order = vi.fn().mockResolvedValue({
+      data: [
+        remoteRow,
+        { ...remoteRow, id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", title: 42 },
+      ],
+      error: null,
+    });
+    const select = vi.fn().mockReturnValue({ order });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = { from } as unknown as SupabaseClient;
+    const remote = new SupabaseTodoRemote(client);
+
+    await expect(remote.list()).rejects.toThrow(/invalid remote todo at index 1/);
+  });
+
+  it("rejects an unknown priority value from the remote", async () => {
+    const order = vi.fn().mockResolvedValue({
+      data: [{ ...remoteRow, priority: "urgent" }],
+      error: null,
+    });
+    const select = vi.fn().mockReturnValue({ order });
+    const from = vi.fn().mockReturnValue({ select });
+    const client = { from } as unknown as SupabaseClient;
+    const remote = new SupabaseTodoRemote(client);
+
+    await expect(remote.list()).rejects.toThrow(/invalid remote todo at index 0/);
+  });
 });

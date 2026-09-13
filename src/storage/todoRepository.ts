@@ -149,7 +149,16 @@ export class LocalTodoRepository {
     });
   }
 
-  putCanonical(row: LocalTodoRecord): Promise<string> {
+  async putCanonical(row: LocalTodoRecord): Promise<string> {
+    const existing = await this.db.todos.get(row.id);
+    // The pushed snapshot can be stale by the time the canonical row returns:
+    // the user (or another tab sharing this database) may have edited the
+    // record while the request was in flight. Adopting the older canonical
+    // row would silently discard that newer edit, so leave it pending for
+    // the next push instead.
+    if (existing && existing.updatedAt > row.updatedAt) {
+      return existing.id;
+    }
     return this.db.todos.put(row);
   }
 
