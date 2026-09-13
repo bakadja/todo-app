@@ -121,8 +121,14 @@ export function useTodoAppState(
     dispatch({ type: "setPriorityFilter", priorityFilter });
   }, []);
 
+  // While a different owner's session is hydrating, the reducer still holds
+  // the previous owner's todos. Exposing them would leak one user's data to
+  // the next user of a shared device for the length of the hydration window.
+  const visibleState =
+    loadedOwnerKey === ownerKey ? state : { ...state, todos: [] };
+
   return {
-    state,
+    state: visibleState,
     loading: loadedOwnerKey !== ownerKey,
     add,
     toggle,
