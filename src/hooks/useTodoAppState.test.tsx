@@ -230,4 +230,87 @@ describe("useTodoAppState", () => {
       syncStatus: "pending",
     });
   });
+
+  it("never renders the previous user's todos while switching to user B", async () => {
+    const ownerA = ownerKeyForUser("11111111-1111-1111-1111-111111111111");
+    const ownerB = ownerKeyForUser("22222222-2222-2222-2222-222222222222");
+    await repository.add("A private task", ownerA, 1000);
+    await repository.add("B task", ownerB, 2000);
+
+    // Hold B's hydration so the transition window is observable.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const gated = Object.create(repository) as LocalTodoRepository;
+    gated.listVisible = async (owner: OwnerKey) => {
+      if (owner === ownerB) await gate;
+      return repository.listVisible(owner);
+    };
+
+    const { result, rerender } = renderHook(
+      ({ owner }: { owner: OwnerKey }) =>
+        useTodoAppState(owner, gated, db),
+      { initialProps: { owner: ownerA as OwnerKey } },
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(
+      result.current.state.todos.map((todo) => todo.title),
+    ).toEqual(["A private task"]);
+
+    rerender({ owner: ownerB });
+
+    // While B's session is hydrating, A's todos must already be hidden.
+    expect(
+      result.current.state.todos.map((todo) => todo.title),
+    ).toEqual([]);
+
+    release();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(
+      result.current.state.todos.map((todo) => todo.title),
+    ).toEqual(["B task"]);
+    // A's data stays in A's bucket; B never claims it.
+    expect(
+      (await repository.listVisible(ownerA)).map((todo) => todo.title),
+    ).toEqual(["A private task"]);
+  });
+
+  it("a stale refresh for the previous owner cannot repopulate user B's view", async () => {
+    const ownerA = ownerKeyForUser("11111111-1111-1111-1111-111111111111");
+    const ownerB = ownerKeyForUser("22222222-2222-2222-2222-222222222222");
+    await repository.add("A private task", ownerA, 1000);
+    await repository.add("B task", ownerB, 2000);
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const gated = Object.create(repository) as LocalTodoRepository;
+    gated.listVisible = async (owner: OwnerKey) => {
+      if (owner === ownerB) await gate;
+      return repository.listVisible(owner);
+    };
+
+    const { result, rerender } = renderHook(
+      ({ owner }: { owner: OwnerKey }) =>
+        useTodoAppState(owner, gated, db),
+      { initialProps: { owner: ownerA as OwnerKey } },
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const staleRefresh = result.current.refresh;
+
+    rerender({ owner: ownerB });
+    await staleRefresh();
+
+    expect(
+      result.current.state.todos.map((todo) => todo.title),
+    ).toEqual([]);
+
+    release();
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(
+      result.current.state.todos.map((todo) => todo.title),
+    ).toEqual(["B task"]);
+  });
 });
