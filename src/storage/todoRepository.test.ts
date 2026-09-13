@@ -94,7 +94,7 @@ describe("LocalTodoRepository", () => {
   it("rejects titles beyond the bounded length instead of truncating them", async () => {
     await expect(
       repo.add("a".repeat(201), "anonymous", 1000),
-    ).rejects.toThrow(/title must be between 1 and 200 characters/);
+    ).rejects.toThrow(/title must be at most 200 characters/);
     await expect(
       repo.add("ok title", "anonymous", 1000),
     ).resolves.toMatchObject({ title: "ok title" });
@@ -102,10 +102,10 @@ describe("LocalTodoRepository", () => {
 
   it("rejects empty and whitespace-only titles", async () => {
     await expect(repo.add("", "anonymous", 1000)).rejects.toThrow(
-      /title must be between 1 and 200 characters/,
+      /title must not be empty/,
     );
     await expect(repo.add("   ", "anonymous", 1000)).rejects.toThrow(
-      /title must be between 1 and 200 characters/,
+      /title must not be empty/,
     );
   });
 
@@ -113,7 +113,7 @@ describe("LocalTodoRepository", () => {
     const row = await repo.add("Fine", "anonymous", 1000);
     await expect(
       repo.edit(row.id, "anonymous", "b".repeat(201), 2000),
-    ).rejects.toThrow(/title must be between 1 and 200 characters/);
+    ).rejects.toThrow(/title must be at most 200 characters/);
     await expect(
       repo.edit(row.id, "anonymous", "Still fine", 2000),
     ).resolves.toMatchObject({ title: "Still fine" });

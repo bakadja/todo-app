@@ -30,6 +30,26 @@ describe("TodoItem", () => {
     expect(editor.maxLength).toBe(200);
   });
 
+it("keeps the editor open with an error when committing an oversized legacy title", () => {
+    const onEdit = vi.fn();
+    render(
+      <TodoItem
+        todo={{ id: "t1", title: "x".repeat(250), completed: false, priority: null, createdAt: 1000 }}
+        onToggle={vi.fn()}
+        onRemove={vi.fn()}
+        onEdit={onEdit}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /must not exceed 200/,
+    );
+    expect(screen.getByLabelText("Edit todo")).toBeTruthy();
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
   it("uses a multiline editor for long todo titles", () => {
     render(
       <TodoItem

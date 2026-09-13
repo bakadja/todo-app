@@ -29,9 +29,13 @@ large titles.
 
 ### Compatibility notes
 
-- Nothing is silently truncated: typed input is bounded at the field level,
-  over-limit shared drafts fail visibly, and the repository rejects invalid
-  writes outright.
+- Nothing is silently truncated: typed input is bounded at the field level
+  (pasting is clipped by the browser's standard `maxLength` behavior, with the
+  resulting value visible in the field), over-limit shared drafts fail
+  visibly, and the repository rejects invalid writes outright.
+- Editing a legacy over-length title keeps the editor open with a visible
+  error instead of failing silently; shortening the title below the limit is
+  the recovery path.
 - Legacy local records longer than 200 characters are not destroyed; they
   keep working locally and surface a sync error if ever pushed, since the
   server rejects them. New writes cannot create them.

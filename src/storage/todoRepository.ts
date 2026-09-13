@@ -1,5 +1,5 @@
 import type { TodoPriority } from "../types/todoPriority";
-import { isValidTodoTitle } from "../types/todoTitle";
+import { MAX_TODO_TITLE_LENGTH, isValidTodoTitle } from "../types/todoTitle";
 import {
   todoDb,
   type LocalTodoRecord,
@@ -13,10 +13,15 @@ const isRetryable = (row: LocalTodoRecord) =>
   row.syncStatus === "error";
 
 const assertValidTitle = (title: string) => {
-  // Mirrors the database constraint; oversized input must fail predictably
-  // instead of being truncated or rejected only at sync time.
+  // The length check mirrors the database CHECK on the raw stored value;
+  // oversized input must fail predictably instead of being truncated or
+  // rejected only at sync time.
   if (!isValidTodoTitle(title)) {
-    throw new Error("Todo title must be between 1 and 200 characters");
+    throw new Error(
+      title.trim().length === 0
+        ? "Todo title must not be empty"
+        : `Todo title must be at most ${MAX_TODO_TITLE_LENGTH} characters`,
+    );
   }
 };
 
