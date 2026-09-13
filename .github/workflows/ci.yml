@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - master
+      - agent/staging
   pull_request:
     branches:
       - master
+      - agent/staging
 
 permissions:
   contents: read
