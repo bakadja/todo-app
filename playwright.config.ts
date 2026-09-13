@@ -6,7 +6,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   workers: 1,
   retries: 0,
-  reporter: [["list"]],
+  forbidOnly: !process.env.PLAYWRIGHT_ALLOW_ONLY,
+  reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",

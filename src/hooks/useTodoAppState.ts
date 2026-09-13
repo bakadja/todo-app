@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   defaultState,
   reducer,
@@ -40,9 +46,17 @@ export function useTodoAppState(
 ) {
   const [state, dispatch] = useReducer(reducer, defaultState);
   const [loadedOwnerKey, setLoadedOwnerKey] = useState<OwnerKey | null>(null);
+  const ownerKeyRef = useRef(ownerKey);
+  useEffect(() => {
+    ownerKeyRef.current = ownerKey;
+  }, [ownerKey]);
 
   const refresh = useCallback(async () => {
+    // A stale refresh (e.g. from the sync hook completing for the previous
+    // owner) must never repopulate the current owner's view.
+    if (ownerKeyRef.current !== ownerKey) return;
     const rows = await repository.listVisible(ownerKey);
+    if (ownerKeyRef.current !== ownerKey) return;
     dispatch({ type: "hydrate", todos: rows.map(toUiTodo) });
   }, [ownerKey, repository]);
 
