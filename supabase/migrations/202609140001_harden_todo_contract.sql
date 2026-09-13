@@ -10,11 +10,13 @@
 --  Detection query for pre-existing oversized rows:
 --    select id from public.todos where char_length(title) > 200;
 -- 2. RPC privileges: Supabase default privileges grant EXECUTE on new
---    functions to anon/authenticated/service_role. The earlier revoke from
+--    functions to anon, authenticated, and the server-only service role.
+--    The earlier revoke from
 --    PUBLIC does not remove those explicit grants, so anonymous callers
 --    could still invoke the sync RPC (it raises "Authentication required",
 --    but the grant violates least privilege). Revoke it for anon; keep the
---    authenticated grant required by sync, and leave the service_role grant
+--    authenticated grant required by sync, and leave the server-only service
+--    role grant
 --    alone as a Supabase-managed server-side default that cannot be used
 --    without a user context.
 alter table public.todos
