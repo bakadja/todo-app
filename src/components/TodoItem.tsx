@@ -37,7 +37,7 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
     // feedback instead of failing silently in the repository.
     if (draft.length > MAX_TODO_TITLE_LENGTH) {
       setDraftError(
-        `Todo title must not exceed ${MAX_TODO_TITLE_LENGTH} characters`,
+        `Todo title must be at most ${MAX_TODO_TITLE_LENGTH} characters`,
       );
       return;
     }

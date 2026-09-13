@@ -7,6 +7,8 @@
 --    being truncated. If production rows already exceed the limit this
 --    migration fails loudly without destroying any data, and the limit
 --    should be revisited with the owner rather than relaxed silently.
+--  Detection query for pre-existing oversized rows:
+--    select id from public.todos where char_length(title) > 200;
 -- 2. RPC privileges: Supabase default privileges grant EXECUTE on new
 --    functions to anon/authenticated/service_role. The earlier revoke from
 --    PUBLIC does not remove those explicit grants, so anonymous callers

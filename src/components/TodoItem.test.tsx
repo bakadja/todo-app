@@ -44,7 +44,7 @@ it("keeps the editor open with an error when committing an oversized legacy titl
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(screen.getByRole("alert").textContent).toMatch(
-      /must not exceed 200/,
+      /must be at most 200/,
     );
     expect(screen.getByLabelText("Edit todo")).toBeTruthy();
     expect(onEdit).not.toHaveBeenCalled();
