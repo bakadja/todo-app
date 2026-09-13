@@ -8,7 +8,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(12);
 
 insert into auth.users (id, email)
 values
@@ -161,6 +161,40 @@ select results_eq(
   $$select title from public.todos where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
   $$values ('Tie incoming'::text)$$,
   'a rejected cross-user push leaves the canonical row untouched'
+);
+
+-- The legacy 6-argument overload performed the merge without the timestamp
+-- bound; it must be gone so it cannot bypass the clamp.
+select ok(
+  to_regprocedure('public.sync_todo_lww(uuid, text, boolean, timestamptz, timestamptz, timestamptz)') is null,
+  'the legacy unbounded sync_todo_lww overload is dropped'
+);
+
+select ok(
+  to_regprocedure('public.sync_todo_lww(uuid, text, boolean, text, timestamptz, timestamptz, timestamptz)') is not null,
+  'the bounded priority-aware sync_todo_lww remains'
+);
+
+select results_eq(
+  $$select count(*) from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'sync_todo_lww'$$,
+  $$values (1::bigint)$$,
+  'exactly one sync_todo_lww signature remains'
+);
+
+select throws_ok(
+  $$select public.sync_todo_lww(
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'Null timestamps',
+    false,
+    null,
+    '2026-09-13 08:00:00+00',
+    null,
+    null
+  )$$,
+  NULL,
+  'null updated_at is rejected instead of coerced to the bound'
 );
 
 select * from finish();

@@ -39,6 +39,13 @@ begin
     raise exception 'Authentication required';
   end if;
 
+  -- least() ignores NULL inputs, which would coerce a missing timestamp to
+  -- the maximum allowed value; reject it explicitly like the NOT NULL
+  -- columns did before the bound was introduced.
+  if p_created_at is null or p_updated_at is null then
+    raise exception 'created_at and updated_at are required';
+  end if;
+
   insert into public.todos (
     id,
     user_id,
@@ -85,3 +92,23 @@ begin
   return v_row;
 end;
 $$;
+
+revoke all on function public.sync_todo_lww(
+  uuid,
+  text,
+  boolean,
+  text,
+  timestamptz,
+  timestamptz,
+  timestamptz
+) from public;
+
+grant execute on function public.sync_todo_lww(
+  uuid,
+  text,
+  boolean,
+  text,
+  timestamptz,
+  timestamptz,
+  timestamptz
+) to authenticated;
