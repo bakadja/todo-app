@@ -1,4 +1,4 @@
-export const MAX_TODO_TITLE_LENGTH = 200;
+export const MAX_TODO_TITLE_LENGTH = 2000;
 
 // The length check mirrors the database CHECK, which measures the raw stored
 // value; the empty check is a stricter product rule on the trimmed value.
