@@ -10,7 +10,7 @@ describe("TodoInput priority", () => {
     const input = screen.getByRole("textbox", {
       name: "Add a task",
     }) as HTMLInputElement;
-    expect(input.maxLength).toBe(200);
+    expect(input.maxLength).toBe(2000);
   });
 
   it("adds a todo with no priority by default", () => {
