@@ -17,15 +17,17 @@ large titles.
 ### Change
 
 - Migration `202609140001_harden_todo_contract.sql` adds
-  `todos_title_length_check` bounding `title` to at most 200 characters.
-- `src/types/todoTitle.ts` exports the shared `MAX_TODO_TITLE_LENGTH = 200`
+  `todos_title_length_check` bounding `title` to at most 2000 characters.
+- `src/types/todoTitle.ts` exports the shared `MAX_TODO_TITLE_LENGTH = 2000`
   and `isValidTodoTitle`.
 - `LocalTodoRepository.add/edit` validate the title and throw a descriptive
   error; the browser inputs (`TodoInput`, `TodoItem` editor) enforce
   `maxLength` so typed input cannot exceed the bound.
-- Shared content (Web Share Target) can arrive pre-filled above the limit;
-  `SharedTodoCard` shows an explicit error and disables Add rather than
-  truncating user content.
+- The 2000-character bound intentionally leaves room for Todo Pop's Web Share
+  Target flow, where shared content may combine a page title, selected text,
+  and a URL, while still preventing arbitrarily large database writes.
+- Shared content can arrive pre-filled above the limit; `SharedTodoCard` shows
+  an explicit error and disables Add rather than truncating user content.
 
 ### Compatibility notes
 
@@ -36,10 +38,10 @@ large titles.
 - Editing a legacy over-length title keeps the editor open with a visible
   error instead of failing silently; shortening the title below the limit is
   the recovery path.
-- Legacy local records longer than 200 characters are not destroyed; they
+- Legacy local records longer than 2000 characters are not destroyed; they
   keep working locally and surface a sync error if ever pushed, since the
   server rejects them. New writes cannot create them.
-- If production rows already exceed 200 characters, the migration fails
+- If production rows already exceed 2000 characters, the migration fails
   loudly without touching data; the limit should then be revisited with the
   owner instead of being relaxed silently.
 
@@ -63,8 +65,8 @@ migrations' `revoke ... from public` (public is a separate grantee).
 
 ## Verification
 
-- `supabase/tests/todos_contract.sql` — pgTAP: 200-char boundary accepted,
-  201 rejected (direct insert and via RPC), empty title still rejected,
+- `supabase/tests/todos_contract.sql` — pgTAP: 2000-char boundary accepted,
+  2001 rejected (direct insert and via RPC), empty title still rejected,
   `anon` cannot execute the RPC, `authenticated` can.
 - Full migration chain from a clean local database passes
   (`supabase db reset` + `supabase test db`).
