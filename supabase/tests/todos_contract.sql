@@ -19,12 +19,12 @@ select set_config(
 );
 set local role authenticated;
 
--- Boundary: exactly 200 characters is accepted when written directly.
+-- Boundary: exactly 2000 characters is accepted when written directly.
 insert into public.todos (id, user_id, title, completed, created_at, updated_at)
 values (
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
   '11111111-1111-1111-1111-111111111111',
-  repeat('a', 200),
+  repeat('a', 2000),
   false,
   '2026-09-13 08:00:00+00',
   '2026-09-13 08:00:00+00'
@@ -33,7 +33,7 @@ values (
 select is(
   (select count(*) from public.todos where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'),
   1::bigint,
-  'a 200-character title is accepted'
+  'a 2000-character title is accepted'
 );
 
 select throws_ok(
@@ -41,14 +41,14 @@ select throws_ok(
     values (
       'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       '11111111-1111-1111-1111-111111111111',
-      repeat('a', 201),
+      repeat('a', 2001),
       false,
       '2026-09-13 08:00:00+00',
       '2026-09-13 08:00:00+00'
     )$$,
   '23514',
   NULL,
-  'a 201-character title violates the title length constraint'
+  'a 2001-character title violates the title length constraint'
 );
 
 select throws_ok(
@@ -69,7 +69,7 @@ select throws_ok(
 -- The sync RPC enforces the same bounds.
 select public.sync_todo_lww(
   'ffffffff-ffff-4fff-8fff-ffffffffffff',
-  repeat('b', 200),
+  repeat('b', 2000),
   false,
   null,
   '2026-09-13 08:00:00+00',
@@ -80,13 +80,13 @@ select public.sync_todo_lww(
 select is(
   (select count(*) from public.todos where id = 'ffffffff-ffff-4fff-8fff-ffffffffffff'),
   1::bigint,
-  'the sync RPC accepts a 200-character title'
+  'the sync RPC accepts a 2000-character title'
 );
 
 select throws_ok(
   $$select public.sync_todo_lww(
     '99999999-9999-4999-8999-999999999999',
-    repeat('b', 201),
+    repeat('b', 2001),
     false,
     null,
     '2026-09-13 08:00:00+00',
@@ -95,7 +95,7 @@ select throws_ok(
   )$$,
   '23514',
   NULL,
-  'the sync RPC rejects a 201-character title'
+  'the sync RPC rejects a 2001-character title'
 );
 
 reset role;

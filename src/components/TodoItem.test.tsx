@@ -27,14 +27,14 @@ describe("TodoItem", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     const editor = screen.getByLabelText("Edit todo") as HTMLTextAreaElement;
-    expect(editor.maxLength).toBe(200);
+    expect(editor.maxLength).toBe(2000);
   });
 
-it("keeps the editor open with an error when committing an oversized legacy title", () => {
+  it("keeps the editor open with an error when committing an oversized legacy title", () => {
     const onEdit = vi.fn();
     render(
       <TodoItem
-        todo={{ id: "t1", title: "x".repeat(250), completed: false, priority: null, createdAt: 1000 }}
+        todo={{ id: "t1", title: "x".repeat(2500), completed: false, priority: null, createdAt: 1000 }}
         onToggle={vi.fn()}
         onRemove={vi.fn()}
         onEdit={onEdit}
@@ -44,7 +44,7 @@ it("keeps the editor open with an error when committing an oversized legacy titl
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(screen.getByRole("alert").textContent).toMatch(
-      /must be at most 200/,
+      /must be at most 2000/,
     );
     expect(screen.getByLabelText("Edit todo")).toBeTruthy();
     expect(onEdit).not.toHaveBeenCalled();
