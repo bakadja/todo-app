@@ -1,4 +1,5 @@
 import type { TodoPriority } from "../types/todoPriority";
+import { MAX_TODO_TITLE_LENGTH, isValidTodoTitle } from "../types/todoTitle";
 import {
   todoDb,
   type LocalTodoRecord,
@@ -10,6 +11,19 @@ const isRetryable = (row: LocalTodoRecord) =>
   row.syncStatus === "pending" ||
   row.syncStatus === "syncing" ||
   row.syncStatus === "error";
+
+const assertValidTitle = (title: string) => {
+  // The length check mirrors the database CHECK on the raw stored value;
+  // oversized input must fail predictably instead of being truncated or
+  // rejected only at sync time.
+  if (!isValidTodoTitle(title)) {
+    throw new Error(
+      title.trim().length === 0
+        ? "Todo title must not be empty"
+        : `Todo title must be at most ${MAX_TODO_TITLE_LENGTH} characters`,
+    );
+  }
+};
 
 export class LocalTodoRepository {
   private readonly db: TodoDb;
@@ -40,6 +54,7 @@ export class LocalTodoRepository {
     now = Date.now(),
     priority: TodoPriority = null,
   ): Promise<LocalTodoRecord> {
+    assertValidTitle(title);
     const row: LocalTodoRecord = {
       id: crypto.randomUUID(),
       ownerKey,
@@ -64,6 +79,7 @@ export class LocalTodoRepository {
     now = Date.now(),
     priority?: TodoPriority,
   ): Promise<LocalTodoRecord> {
+    assertValidTitle(title);
     const row = await this.requireForOwner(id, ownerKey);
     const next: LocalTodoRecord = {
       ...row,
@@ -149,7 +165,16 @@ export class LocalTodoRepository {
     });
   }
 
-  putCanonical(row: LocalTodoRecord): Promise<string> {
+  async putCanonical(row: LocalTodoRecord): Promise<string> {
+    const existing = await this.db.todos.get(row.id);
+    // The pushed snapshot can be stale by the time the canonical row returns:
+    // the user (or another tab sharing this database) may have edited the
+    // record while the request was in flight. Adopting the older canonical
+    // row would silently discard that newer edit, so leave it pending for
+    // the next push instead.
+    if (existing && existing.updatedAt > row.updatedAt) {
+      return existing.id;
+    }
     return this.db.todos.put(row);
   }
 

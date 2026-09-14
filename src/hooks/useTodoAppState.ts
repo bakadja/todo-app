@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   defaultState,
   reducer,
@@ -40,9 +46,17 @@ export function useTodoAppState(
 ) {
   const [state, dispatch] = useReducer(reducer, defaultState);
   const [loadedOwnerKey, setLoadedOwnerKey] = useState<OwnerKey | null>(null);
+  const ownerKeyRef = useRef(ownerKey);
+  useEffect(() => {
+    ownerKeyRef.current = ownerKey;
+  }, [ownerKey]);
 
   const refresh = useCallback(async () => {
+    // A stale refresh (e.g. from the sync hook completing for the previous
+    // owner) must never repopulate the current owner's view.
+    if (ownerKeyRef.current !== ownerKey) return;
     const rows = await repository.listVisible(ownerKey);
+    if (ownerKeyRef.current !== ownerKey) return;
     dispatch({ type: "hydrate", todos: rows.map(toUiTodo) });
   }, [ownerKey, repository]);
 
@@ -121,8 +135,14 @@ export function useTodoAppState(
     dispatch({ type: "setPriorityFilter", priorityFilter });
   }, []);
 
+  // While a different owner's session is hydrating, the reducer still holds
+  // the previous owner's todos. Exposing them would leak one user's data to
+  // the next user of a shared device for the length of the hydration window.
+  const visibleState =
+    loadedOwnerKey === ownerKey ? state : { ...state, todos: [] };
+
   return {
-    state,
+    state: visibleState,
     loading: loadedOwnerKey !== ownerKey,
     add,
     toggle,

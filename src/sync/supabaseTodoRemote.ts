@@ -7,6 +7,30 @@ export type { RemoteTodoRecord } from "./types";
 const TODO_COLUMNS =
   "id,user_id,title,completed,priority,created_at,updated_at,deleted_at";
 
+const PRIORITIES = ["low", "medium", "high"] as const;
+
+const isDateLike = (value: unknown): value is string =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value));
+
+const isRemoteTodoRecord = (value: unknown): value is RemoteTodoRecord => {
+  if (typeof value !== "object" || value === null) return false;
+  const row = value as Record<string, unknown>;
+
+  return (
+    typeof row.id === "string" &&
+    row.id.length > 0 &&
+    typeof row.user_id === "string" &&
+    row.user_id.length > 0 &&
+    typeof row.title === "string" &&
+    typeof row.completed === "boolean" &&
+    (row.priority === null ||
+      (PRIORITIES as readonly string[]).includes(row.priority as string)) &&
+    isDateLike(row.created_at) &&
+    isDateLike(row.updated_at) &&
+    (row.deleted_at === null || isDateLike(row.deleted_at))
+  );
+};
+
 export function remoteToLocal(
   row: RemoteTodoRecord,
   ownerKey: OwnerKey,
@@ -47,8 +71,10 @@ export class SupabaseTodoRemote implements TodoRemote {
       .single();
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error("Supabase sync returned no canonical todo");
-    return data as RemoteTodoRecord;
+    if (!isRemoteTodoRecord(data)) {
+      throw new Error("Supabase sync returned an invalid canonical todo");
+    }
+    return data;
   }
 
   async list(): Promise<RemoteTodoRecord[]> {
@@ -58,6 +84,14 @@ export class SupabaseTodoRemote implements TodoRemote {
       .order("updated_at", { ascending: true });
 
     if (error) throw new Error(error.message);
-    return (data ?? []) as RemoteTodoRecord[];
+
+    return (data ?? []).map((row, index) => {
+      if (!isRemoteTodoRecord(row)) {
+        throw new Error(
+          `Supabase sync returned an invalid remote todo at index ${index}`,
+        );
+      }
+      return row;
+    });
   }
 }

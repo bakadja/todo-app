@@ -5,6 +5,14 @@ import { TodoInput } from "./TodoInput";
 afterEach(cleanup);
 
 describe("TodoInput priority", () => {
+  it("bounds typed input to the maximum todo title length", () => {
+    render(<TodoInput onAdd={vi.fn()} />);
+    const input = screen.getByRole("textbox", {
+      name: "Add a task",
+    }) as HTMLInputElement;
+    expect(input.maxLength).toBe(2000);
+  });
+
   it("adds a todo with no priority by default", () => {
     const onAdd = vi.fn();
     render(<TodoInput onAdd={onAdd} />);

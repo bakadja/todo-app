@@ -1,0 +1,58 @@
+name: Security
+
+on:
+  push:
+    branches:
+      - master
+      - agent/staging
+  pull_request:
+    branches:
+      - master
+      - agent/staging
+  schedule:
+    # Weekly dependency and secret audit, Mondays 06:00 UTC.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Scan git history for secrets
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Findings fail the job via the gitleaks exit code; PR comments on
+          # leaks are suppressed so least-privilege GITHUB_TOKEN never 403s.
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Stronger than the CI runtime-only audit: covers dev dependencies too
+      # and fails on high or critical advisories in either group.
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high

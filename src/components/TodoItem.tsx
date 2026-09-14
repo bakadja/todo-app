@@ -3,6 +3,7 @@ import "./TodoItem.css";
 import type { Todo } from "../state/todosReducer";
 import type { TodoPriority } from "../types/todoPriority";
 import { todoPriorityLabel } from "../types/todoPriority";
+import { MAX_TODO_TITLE_LENGTH } from "../types/todoTitle";
 import { PrioritySelect } from "./PrioritySelect";
 
 type TodoItemProps = {
@@ -16,19 +17,28 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(todo.title);
   const [draftPriority, setDraftPriority] = useState<TodoPriority>(todo.priority);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const startEdit = () => {
     setDraft(todo.title);
     setDraftPriority(todo.priority);
+    setDraftError(null);
     setIsEditing(true);
   };
 
   const commit = () => {
     const next = draft.trim();
     if (!next) {
-      setDraft(todo.title);
-      setDraftPriority(todo.priority);
-      setIsEditing(false);
+      // Committing an emptied editor cancels the edit, as before.
+      cancel();
+      return;
+    }
+    // Legacy todos may exceed the title bound; refuse the commit with visible
+    // feedback instead of failing silently in the repository.
+    if (draft.length > MAX_TODO_TITLE_LENGTH) {
+      setDraftError(
+        `Todo title must be at most ${MAX_TODO_TITLE_LENGTH} characters`,
+      );
       return;
     }
     onEdit(todo.id, next, draftPriority);
@@ -38,6 +48,7 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
   const cancel = () => {
     setDraft(todo.title);
     setDraftPriority(todo.priority);
+    setDraftError(null);
     setIsEditing(false);
   };
 
@@ -48,7 +59,11 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
           <textarea
             value={draft}
             rows={3}
-            onChange={(event) => setDraft(event.target.value)}
+            maxLength={MAX_TODO_TITLE_LENGTH}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              setDraftError(null);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") commit();
               if (event.key === "Escape") cancel();
@@ -56,6 +71,11 @@ export function TodoItem({ todo, onToggle, onRemove, onEdit }: TodoItemProps) {
             aria-label="Edit todo"
             autoFocus
           />
+          {draftError ? (
+            <p className="todo-item__edit-error" role="alert">
+              {draftError}
+            </p>
+          ) : null}
           <PrioritySelect
             value={draftPriority}
             onChange={setDraftPriority}
