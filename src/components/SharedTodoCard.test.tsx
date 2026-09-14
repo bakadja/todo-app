@@ -9,7 +9,7 @@ describe("SharedTodoCard", () => {
     const onAdd = vi.fn();
     render(
       <SharedTodoCard
-        initialValue={"x".repeat(250)}
+        initialValue={"x".repeat(2500)}
         onAdd={onAdd}
         onCancel={vi.fn()}
       />,
@@ -20,7 +20,7 @@ describe("SharedTodoCard", () => {
     expect((add as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.change(screen.getByLabelText("Shared todo content"), {
-      target: { value: "x".repeat(200) },
+      target: { value: "x".repeat(2000) },
     });
     expect(screen.queryByText(/too long/)).toBeNull();
     expect((screen.getByRole("button", { name: "Add shared todo" }) as HTMLButtonElement).disabled).toBe(false);
