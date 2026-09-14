@@ -93,8 +93,8 @@ describe("LocalTodoRepository", () => {
 
   it("rejects titles beyond the bounded length instead of truncating them", async () => {
     await expect(
-      repo.add("a".repeat(201), "anonymous", 1000),
-    ).rejects.toThrow(/title must be at most 200 characters/);
+      repo.add("a".repeat(2001), "anonymous", 1000),
+    ).rejects.toThrow(/title must be at most 2000 characters/);
     await expect(
       repo.add("ok title", "anonymous", 1000),
     ).resolves.toMatchObject({ title: "ok title" });
@@ -112,8 +112,8 @@ describe("LocalTodoRepository", () => {
   it("rejects oversized titles on edit as well", async () => {
     const row = await repo.add("Fine", "anonymous", 1000);
     await expect(
-      repo.edit(row.id, "anonymous", "b".repeat(201), 2000),
-    ).rejects.toThrow(/title must be at most 200 characters/);
+      repo.edit(row.id, "anonymous", "b".repeat(2001), 2000),
+    ).rejects.toThrow(/title must be at most 2000 characters/);
     await expect(
       repo.edit(row.id, "anonymous", "Still fine", 2000),
     ).resolves.toMatchObject({ title: "Still fine" });
